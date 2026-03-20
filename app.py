@@ -161,9 +161,13 @@ with st.sidebar:
     st.markdown("---")
     st.session_state.entity_type = st.text_input(
         "Entity type", value=st.session_state.entity_type)
-    st.session_state.api_key = st.text_input(
-        "Anthropic API key", type="password", value=st.session_state.api_key,
-        help="Required for steps 04+")
+    try:
+        st.session_state.api_key = st.secrets["ANTHROPIC_API_KEY"]
+        st.success("API key loaded ✓", icon="🔑")
+    except Exception:
+        st.session_state.api_key = st.text_input(
+            "Anthropic API key", type="password", value=st.session_state.api_key,
+            help="Required for steps 04+")
     st.markdown("---")
     if st.button("🔄 Reset everything", use_container_width=True):
         for k, v in DEFAULTS.items():
