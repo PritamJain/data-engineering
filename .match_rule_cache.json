@@ -1,0 +1,2336 @@
+{
+  "d4d24acbfed1a44523c0cf790fcf0b460f4a84d12f9b269b4a8f4afa95252857": {
+    "matchGroups": [
+      {
+        "uri": "configuration/entityTypes/TestCustomer/matchGroups/MatchOnCustomerId",
+        "label": "Match on Customer ID",
+        "type": "automatic",
+        "scope": "ALL",
+        "rule": {
+          "matchTokenClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/TestCustomer/attributes/customer_id",
+                "class": "com.reltio.match.token.ExactMatchToken"
+              }
+            ]
+          },
+          "comparatorClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/TestCustomer/attributes/customer_id",
+                "class": "com.reltio.match.comparator.ExactComparator"
+              }
+            ]
+          },
+          "and": {
+            "exact": [
+              "configuration/entityTypes/TestCustomer/attributes/customer_id"
+            ]
+          }
+        },
+        "scoreStandalone": 0,
+        "scoreIncremental": 0
+      },
+      {
+        "uri": "configuration/entityTypes/TestCustomer/matchGroups/MatchOnFirstNameLastName",
+        "label": "Match on First and Last Name",
+        "type": "suspect",
+        "scope": "ALL",
+        "rule": {
+          "matchTokenClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/TestCustomer/attributes/last_name",
+                "class": "com.reltio.match.token.ExactMatchToken"
+              }
+            ]
+          },
+          "comparatorClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/TestCustomer/attributes/last_name",
+                "class": "com.reltio.match.comparator.DoubleMetaphoneComparator"
+              },
+              {
+                "attribute": "configuration/entityTypes/TestCustomer/attributes/first_name",
+                "class": "com.reltio.match.comparator.DoubleMetaphoneComparator"
+              }
+            ]
+          },
+          "and": {
+            "fuzzy": [
+              "configuration/entityTypes/TestCustomer/attributes/last_name",
+              "configuration/entityTypes/TestCustomer/attributes/first_name"
+            ]
+          }
+        },
+        "scoreStandalone": 0,
+        "scoreIncremental": 0
+      },
+      {
+        "uri": "configuration/entityTypes/TestCustomer/matchGroups/MatchOnEmail",
+        "label": "Match on Email",
+        "type": "suspect",
+        "scope": "ALL",
+        "rule": {
+          "matchTokenClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/TestCustomer/attributes/email",
+                "class": "com.reltio.match.token.ExactMatchToken"
+              }
+            ]
+          },
+          "comparatorClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/TestCustomer/attributes/email",
+                "class": "com.reltio.match.comparator.ExactComparator"
+              }
+            ]
+          },
+          "and": {
+            "exact": [
+              "configuration/entityTypes/TestCustomer/attributes/email"
+            ]
+          }
+        },
+        "scoreStandalone": 0,
+        "scoreIncremental": 0
+      },
+      {
+        "uri": "configuration/entityTypes/TestCustomer/matchGroups/MatchOnPhone",
+        "label": "Match on Phone",
+        "type": "suspect",
+        "scope": "ALL",
+        "rule": {
+          "matchTokenClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/TestCustomer/attributes/phone",
+                "class": "com.reltio.match.token.ExactMatchToken"
+              }
+            ]
+          },
+          "comparatorClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/TestCustomer/attributes/phone",
+                "class": "com.reltio.match.comparator.ExactComparator"
+              }
+            ]
+          },
+          "and": {
+            "exact": [
+              "configuration/entityTypes/TestCustomer/attributes/phone"
+            ]
+          }
+        },
+        "scoreStandalone": 0,
+        "scoreIncremental": 0
+      },
+      {
+        "uri": "configuration/entityTypes/TestCustomer/matchGroups/MatchOnDob",
+        "label": "Match on Date of Birth",
+        "type": "suspect",
+        "scope": "ALL",
+        "rule": {
+          "matchTokenClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/TestCustomer/attributes/dob",
+                "class": "com.reltio.match.token.ExactMatchToken"
+              }
+            ]
+          },
+          "comparatorClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/TestCustomer/attributes/dob",
+                "class": "com.reltio.match.comparator.ExactComparator"
+              }
+            ]
+          },
+          "and": {
+            "exact": [
+              "configuration/entityTypes/TestCustomer/attributes/dob"
+            ]
+          }
+        },
+        "scoreStandalone": 0,
+        "scoreIncremental": 0
+      }
+    ]
+  },
+  "5ec216eeab672173bb8ad7af4bfe334a31af824c42624cfc85c6e8de82ed2c08": {
+    "matchGroups": [
+      {
+        "uri": "configuration/entityTypes/Customer/matchGroups/MatchOnCustomerId",
+        "label": "Match on Customer ID",
+        "type": "automatic",
+        "scope": "ALL",
+        "rule": {
+          "matchTokenClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/Customer/attributes/customer_id",
+                "class": "com.reltio.match.token.ExactMatchToken"
+              }
+            ]
+          },
+          "comparatorClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/Customer/attributes/customer_id",
+                "class": "com.reltio.match.comparator.ExactComparator"
+              }
+            ]
+          },
+          "and": {
+            "exact": [
+              "configuration/entityTypes/Customer/attributes/customer_id"
+            ]
+          }
+        },
+        "scoreStandalone": 0,
+        "scoreIncremental": 0
+      },
+      {
+        "uri": "configuration/entityTypes/Customer/matchGroups/MatchOnFirstNameLastNameDOB",
+        "label": "Match on First Name, Last Name and DOB",
+        "type": "suspect",
+        "scope": "ALL",
+        "rule": {
+          "matchTokenClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/Customer/attributes/last_name",
+                "class": "com.reltio.match.token.ExactMatchToken"
+              }
+            ]
+          },
+          "comparatorClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/Customer/attributes/first_name",
+                "class": "com.reltio.match.comparator.DoubleMetaphoneComparator"
+              },
+              {
+                "attribute": "configuration/entityTypes/Customer/attributes/last_name",
+                "class": "com.reltio.match.comparator.DoubleMetaphoneComparator"
+              }
+            ]
+          },
+          "and": {
+            "exact": [
+              "configuration/entityTypes/Customer/attributes/last_name",
+              "configuration/entityTypes/Customer/attributes/dob"
+            ],
+            "fuzzy": [
+              "configuration/entityTypes/Customer/attributes/first_name"
+            ]
+          }
+        },
+        "scoreStandalone": 0,
+        "scoreIncremental": 0
+      },
+      {
+        "uri": "configuration/entityTypes/Customer/matchGroups/MatchOnFirstNameLastNameEmail",
+        "label": "Match on First Name, Last Name and Email",
+        "type": "suspect",
+        "scope": "ALL",
+        "rule": {
+          "matchTokenClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/Customer/attributes/last_name",
+                "class": "com.reltio.match.token.ExactMatchToken"
+              }
+            ]
+          },
+          "comparatorClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/Customer/attributes/first_name",
+                "class": "com.reltio.match.comparator.DoubleMetaphoneComparator"
+              },
+              {
+                "attribute": "configuration/entityTypes/Customer/attributes/last_name",
+                "class": "com.reltio.match.comparator.DoubleMetaphoneComparator"
+              }
+            ]
+          },
+          "and": {
+            "exact": [
+              "configuration/entityTypes/Customer/attributes/last_name",
+              "configuration/entityTypes/Customer/attributes/email"
+            ],
+            "fuzzy": [
+              "configuration/entityTypes/Customer/attributes/first_name"
+            ]
+          }
+        },
+        "scoreStandalone": 0,
+        "scoreIncremental": 0
+      }
+    ]
+  },
+  "c379bf62811bd107e8347737fa3e32ff4adfec5c901bde06abff4ea1b9fe66d9": {
+    "matchGroups": [
+      {
+        "uri": "configuration/entityTypes/HCP/matchGroups/MatchOnRecordId",
+        "label": "Match on Record ID",
+        "type": "automatic",
+        "scope": "ALL",
+        "rule": {
+          "matchTokenClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/record_id",
+                "class": "com.reltio.match.token.ExactMatchToken"
+              }
+            ]
+          },
+          "comparatorClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/record_id",
+                "class": "com.reltio.match.comparator.ExactComparator"
+              }
+            ]
+          },
+          "and": {
+            "exact": [
+              "configuration/entityTypes/HCP/attributes/record_id"
+            ]
+          }
+        },
+        "scoreStandalone": 0,
+        "scoreIncremental": 0
+      },
+      {
+        "uri": "configuration/entityTypes/HCP/matchGroups/MatchOnFirstNameLastName",
+        "label": "Match on First Name and Last Name",
+        "type": "suspect",
+        "scope": "ALL",
+        "rule": {
+          "matchTokenClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/last_name",
+                "class": "com.reltio.match.token.DoubleMetaphoneMatchToken"
+              }
+            ]
+          },
+          "comparatorClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/first_name",
+                "class": "com.reltio.match.comparator.DoubleMetaphoneComparator"
+              },
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/last_name",
+                "class": "com.reltio.match.comparator.DoubleMetaphoneComparator"
+              }
+            ]
+          },
+          "and": {
+            "fuzzy": [
+              "configuration/entityTypes/HCP/attributes/first_name",
+              "configuration/entityTypes/HCP/attributes/last_name"
+            ]
+          }
+        },
+        "scoreStandalone": 0,
+        "scoreIncremental": 0
+      },
+      {
+        "uri": "configuration/entityTypes/HCP/matchGroups/MatchOnFirstNameLastNameDOB",
+        "label": "Match on First Name, Last Name and DOB",
+        "type": "suspect",
+        "scope": "ALL",
+        "rule": {
+          "matchTokenClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/last_name",
+                "class": "com.reltio.match.token.DoubleMetaphoneMatchToken"
+              }
+            ]
+          },
+          "comparatorClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/first_name",
+                "class": "com.reltio.match.comparator.DoubleMetaphoneComparator"
+              },
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/last_name",
+                "class": "com.reltio.match.comparator.DoubleMetaphoneComparator"
+              }
+            ]
+          },
+          "and": {
+            "exact": [
+              "configuration/entityTypes/HCP/attributes/dob"
+            ],
+            "fuzzy": [
+              "configuration/entityTypes/HCP/attributes/first_name",
+              "configuration/entityTypes/HCP/attributes/last_name"
+            ]
+          }
+        },
+        "scoreStandalone": 0,
+        "scoreIncremental": 0
+      },
+      {
+        "uri": "configuration/entityTypes/HCP/matchGroups/MatchOnFirstNameLastNameEmail",
+        "label": "Match on First Name, Last Name and Email",
+        "type": "suspect",
+        "scope": "ALL",
+        "rule": {
+          "matchTokenClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/last_name",
+                "class": "com.reltio.match.token.DoubleMetaphoneMatchToken"
+              }
+            ]
+          },
+          "comparatorClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/first_name",
+                "class": "com.reltio.match.comparator.DoubleMetaphoneComparator"
+              },
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/last_name",
+                "class": "com.reltio.match.comparator.DoubleMetaphoneComparator"
+              }
+            ]
+          },
+          "and": {
+            "exact": [
+              "configuration/entityTypes/HCP/attributes/email"
+            ],
+            "fuzzy": [
+              "configuration/entityTypes/HCP/attributes/first_name",
+              "configuration/entityTypes/HCP/attributes/last_name"
+            ]
+          }
+        },
+        "scoreStandalone": 0,
+        "scoreIncremental": 0
+      },
+      {
+        "uri": "configuration/entityTypes/HCP/matchGroups/MatchOnFirstNameLastNamePhone",
+        "label": "Match on First Name, Last Name and Phone",
+        "type": "suspect",
+        "scope": "ALL",
+        "rule": {
+          "matchTokenClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/last_name",
+                "class": "com.reltio.match.token.DoubleMetaphoneMatchToken"
+              }
+            ]
+          },
+          "comparatorClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/first_name",
+                "class": "com.reltio.match.comparator.DoubleMetaphoneComparator"
+              },
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/last_name",
+                "class": "com.reltio.match.comparator.DoubleMetaphoneComparator"
+              }
+            ]
+          },
+          "and": {
+            "exact": [
+              "configuration/entityTypes/HCP/attributes/phone"
+            ],
+            "fuzzy": [
+              "configuration/entityTypes/HCP/attributes/first_name",
+              "configuration/entityTypes/HCP/attributes/last_name"
+            ]
+          }
+        },
+        "scoreStandalone": 0,
+        "scoreIncremental": 0
+      }
+    ]
+  },
+  "0a9aa255f23024a0ad9d7f344a1b4932bacd6f7f57db998fd670982e016c4cca": {
+    "columns": {
+      "record_id": {
+        "semantic_type": "system_field",
+        "reasoning": "record_id contains internal alphanumeric codes like 'G001', 'D002', 'T003' that are source-system row identifiers, not real-world HCP identifiers.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "ignore in all match rules"
+      },
+      "record_type": {
+        "semantic_type": "system_field",
+        "reasoning": "record_type contains values like 'GOLDEN', 'DUPLICATE', 'NPI_TYPO' which are internal data-quality labels, not matchable attributes.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "ignore in all match rules"
+      },
+      "npi": {
+        "semantic_type": "strong_identifier",
+        "reasoning": "npi contains 10-digit numbers like '1234567890' consistent with the National Provider Identifier standard.",
+        "can_be_primary": true,
+        "match_role": "primary_strong",
+        "composite_with": [],
+        "duplicate_behaviour": "auto-link on exact match"
+      },
+      "prefix": {
+        "semantic_type": "person_name",
+        "reasoning": "prefix contains values like 'Dr.' and 'Dr' which are honorific prefixes for an HCP person name.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from match rules"
+      },
+      "first_name": {
+        "semantic_type": "person_name",
+        "reasoning": "first_name contains given names like 'Emily', 'Michael', 'Rajesh' and known nickname variants like 'Mike', 'Dave'.",
+        "can_be_primary": true,
+        "match_role": "primary_name",
+        "composite_with": [
+          "last_name"
+        ],
+        "duplicate_behaviour": "fuzzy match with last_name"
+      },
+      "middle_name": {
+        "semantic_type": "person_name",
+        "reasoning": "middle_name contains values like 'Elizabeth', 'Kumar', and initials like 'E.' confirming it is a middle name component.",
+        "can_be_primary": false,
+        "match_role": "supporting_equals",
+        "composite_with": [
+          "first_name",
+          "last_name"
+        ],
+        "duplicate_behaviour": "optional tiebreaker in name group"
+      },
+      "last_name": {
+        "semantic_type": "person_name",
+        "reasoning": "last_name contains surnames like 'Anderson', 'Patel', and variant forms like 'Obrien' vs 'O'Brien'.",
+        "can_be_primary": true,
+        "match_role": "primary_name",
+        "composite_with": [
+          "first_name"
+        ],
+        "duplicate_behaviour": "fuzzy match with first_name"
+      },
+      "suffix": {
+        "semantic_type": "credential",
+        "reasoning": "suffix contains medical degree strings like 'MD', 'DO', 'MBBS MRCP', 'MD PhD' which are professional credentials.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from match rules"
+      },
+      "gender": {
+        "semantic_type": "demographic",
+        "reasoning": "gender contains values like 'M', 'F', 'Male', 'Female' which are demographic attributes.",
+        "can_be_primary": false,
+        "match_role": "supporting_equals",
+        "composite_with": [],
+        "duplicate_behaviour": "weak filter only, normalise first"
+      },
+      "dob": {
+        "semantic_type": "demographic",
+        "reasoning": "dob contains date-of-birth values like '1975-11-22' and '03/15/1968' in multiple formats.",
+        "can_be_primary": false,
+        "match_role": "supporting_equals",
+        "composite_with": [],
+        "duplicate_behaviour": "tighten suspect groups after normalisation"
+      },
+      "email": {
+        "semantic_type": "contact_info",
+        "reasoning": "email contains email addresses like 'm.anderson@bostonmed.org' and 'sjohnson@mayo.edu' which are contact identifiers.",
+        "can_be_primary": false,
+        "match_role": "supporting_exact",
+        "composite_with": [],
+        "duplicate_behaviour": "exact match as supporting signal only"
+      },
+      "phone": {
+        "semantic_type": "contact_info",
+        "reasoning": "phone contains phone numbers in multiple formats like '+1-617-555-0101' and '(507) 555-0102'.",
+        "can_be_primary": false,
+        "match_role": "supporting_exact",
+        "composite_with": [],
+        "duplicate_behaviour": "normalise then use as supporting signal"
+      },
+      "fax": {
+        "semantic_type": "contact_info",
+        "reasoning": "fax contains fax numbers like '+1-617-555-0191' and '5075550192', a weak contact attribute with 41% missing.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from match rules"
+      },
+      "specialty": {
+        "semantic_type": "taxonomy_code",
+        "reasoning": "specialty contains clinical specialty text like 'Cardiology', 'Neurology', 'Family Medicine' which are specialty descriptors.",
+        "can_be_primary": false,
+        "match_role": "supporting_equals",
+        "composite_with": [],
+        "duplicate_behaviour": "supporting filter after normalisation"
+      },
+      "sub_specialty": {
+        "semantic_type": "taxonomy_code",
+        "reasoning": "sub_specialty contains sub-specialty text like 'Interventional Cardiology', 'Epilepsy', 'HIV/AIDS' with variant forms.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from match rules"
+      },
+      "taxonomy_code": {
+        "semantic_type": "taxonomy_code",
+        "reasoning": "taxonomy_code contains 10-character NUCC codes like '207RC0000X' and '2084N0400X' matching the standard NUCC taxonomy format.",
+        "can_be_primary": false,
+        "match_role": "supporting_exact",
+        "composite_with": [],
+        "duplicate_behaviour": "exact match as supporting signal only"
+      },
+      "dea_number": {
+        "semantic_type": "strong_identifier",
+        "reasoning": "dea_number contains 9-character alphanumeric codes like 'AA1234563' and 'BJ2345674' matching the DEA registration number pattern of two letters followed by seven digits.",
+        "can_be_primary": true,
+        "match_role": "primary_strong",
+        "composite_with": [],
+        "duplicate_behaviour": "auto-link on exact match"
+      },
+      "license_number": {
+        "semantic_type": "scoped_identifier",
+        "reasoning": "license_number contains state-scoped codes like 'MN-23456', 'CA-45678' and international variants like 'UK-GMC-2233445', unique only within a licensing jurisdiction.",
+        "can_be_primary": true,
+        "match_role": "primary_scoped",
+        "composite_with": [
+          "license_state"
+        ],
+        "duplicate_behaviour": "suspect group scoped to license_state"
+      },
+      "license_state": {
+        "semantic_type": "address_component",
+        "reasoning": "license_state contains jurisdiction codes like 'CA', 'MA', 'MN' and full names like 'Massachusetts' serving as the scope for license_number.",
+        "can_be_primary": false,
+        "match_role": "supporting_equals",
+        "composite_with": [
+          "license_number"
+        ],
+        "duplicate_behaviour": "scope constraint for license match rule"
+      },
+      "practice_name": {
+        "semantic_type": "organization_name",
+        "reasoning": "practice_name contains hospital and clinic names like 'Boston Medical Center', 'Mayo Clinic', and abbreviations like 'BMC', 'MGH'.",
+        "can_be_primary": false,
+        "match_role": "supporting_equals",
+        "composite_with": [],
+        "duplicate_behaviour": "fuzzy supporting signal only"
+      },
+      "practice_type": {
+        "semantic_type": "free_text",
+        "reasoning": "practice_type contains descriptive category labels like 'Hospital', 'Academic Medical Center', 'NHS Trust' which are classification descriptors.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from match rules"
+      },
+      "address1": {
+        "semantic_type": "address_component",
+        "reasoning": "address1 contains street address values like '1 Boston Medical Center Pl', '200 First St SW' with variant spellings.",
+        "can_be_primary": false,
+        "match_role": "primary_composite",
+        "composite_with": [
+          "address2",
+          "city",
+          "state",
+          "zip",
+          "country"
+        ],
+        "duplicate_behaviour": "fuzzy composite address group"
+      },
+      "address2": {
+        "semantic_type": "address_component",
+        "reasoning": "address2 contains secondary address lines like 'Suite 200', 'Blalock 369' with variant forms.",
+        "can_be_primary": false,
+        "match_role": "primary_composite",
+        "composite_with": [
+          "address1",
+          "city",
+          "state",
+          "zip",
+          "country"
+        ],
+        "duplicate_behaviour": "optional component of composite address"
+      },
+      "city": {
+        "semantic_type": "address_component",
+        "reasoning": "city contains city names like 'Boston', 'San Francisco', 'Chennai', 'London' as address components.",
+        "can_be_primary": false,
+        "match_role": "primary_composite",
+        "composite_with": [
+          "address1",
+          "address2",
+          "state",
+          "zip",
+          "country"
+        ],
+        "duplicate_behaviour": "part of composite address group"
+      },
+      "state": {
+        "semantic_type": "address_component",
+        "reasoning": "state contains US state codes like 'MA', 'CA' and full names like 'Pennsylvania', plus international regions like 'Ile-de-France'.",
+        "can_be_primary": false,
+        "match_role": "primary_composite",
+        "composite_with": [
+          "address1",
+          "address2",
+          "city",
+          "zip",
+          "country"
+        ],
+        "duplicate_behaviour": "normalise then use in composite address"
+      },
+      "zip": {
+        "semantic_type": "address_component",
+        "reasoning": "zip contains postal codes like '02118', '94143-0628', 'NW1 2BU' in US and international formats.",
+        "can_be_primary": false,
+        "match_role": "primary_composite",
+        "composite_with": [
+          "address1",
+          "address2",
+          "city",
+          "state",
+          "country"
+        ],
+        "duplicate_behaviour": "normalise then use in composite address"
+      },
+      "country": {
+        "semantic_type": "address_component",
+        "reasoning": "country contains ISO codes like 'US', 'IN', 'UK' and full names like 'India' as address components.",
+        "can_be_primary": false,
+        "match_role": "primary_composite",
+        "composite_with": [
+          "address1",
+          "address2",
+          "city",
+          "state",
+          "zip"
+        ],
+        "duplicate_behaviour": "normalise ISO code for composite address"
+      },
+      "npi_type": {
+        "semantic_type": "system_field",
+        "reasoning": "npi_type contains values like 'Individual' and '1' which are NPI registry classification codes, not matchable HCP attributes.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from match rules"
+      },
+      "npi_status": {
+        "semantic_type": "system_field",
+        "reasoning": "npi_status contains values like 'Active' and 'A' which are NPI registry status flags.",
+        "can_be_primary": false,
+        "match_role": "supporting_equals",
+        "composite_with": [],
+        "duplicate_behaviour": "filter inactive records only"
+      },
+      "npi_enumerationDate": {
+        "semantic_type": "system_field",
+        "reasoning": "npi_enumerationDate contains NPI registry enumeration dates like '2005-06-12' and '02/19/2008', an administrative timestamp.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from match rules"
+      },
+      "source": {
+        "semantic_type": "system_field",
+        "reasoning": "source contains data origin labels like 'CMS', 'EHR', 'Veeva', 'IQVIA' identifying the contributing system.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from match rules"
+      },
+      "notes": {
+        "semantic_type": "free_text",
+        "reasoning": "notes contains long descriptive text like 'Dup G002: Sara vs Sarah, prefix no dot...' which are human-readable data quality annotations.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from all match rules"
+      }
+    }
+  },
+  "dc2862e8a4b262769d477b32ba3d4580c08d091ef4fe53b99a07eae1f6194f33": {
+    "columns": {
+      "record_id": {
+        "semantic_type": "system_field",
+        "reasoning": "record_id contains internal alphanumeric codes like 'G001' and 'D001' that are source-system row identifiers, not real-world HCP identifiers.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "ignore in all match rules"
+      },
+      "record_type": {
+        "semantic_type": "system_field",
+        "reasoning": "record_type contains values like 'GOLDEN', 'DUPLICATE', 'NPI_TYPO' which are internal data quality labels, not matchable attributes.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "ignore in all match rules"
+      },
+      "npi": {
+        "semantic_type": "strong_identifier",
+        "reasoning": "npi contains 10-digit numbers like '1234567890' consistent with National Provider Identifier format.",
+        "can_be_primary": true,
+        "match_role": "primary_strong",
+        "composite_with": [],
+        "duplicate_behaviour": "exact match triggers auto-merge"
+      },
+      "prefix": {
+        "semantic_type": "person_name",
+        "reasoning": "prefix contains values like 'Dr.' and 'Dr' which are honorific prefixes for HCP names.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from match rules"
+      },
+      "first_name": {
+        "semantic_type": "person_name",
+        "reasoning": "first_name contains given names like 'Emily', 'Michael', and nicknames like 'Mike' confirming it is the HCP first name.",
+        "can_be_primary": true,
+        "match_role": "primary_name",
+        "composite_with": [
+          "last_name"
+        ],
+        "duplicate_behaviour": "fuzzy match with last_name"
+      },
+      "middle_name": {
+        "semantic_type": "person_name",
+        "reasoning": "middle_name contains values like 'James', 'K.', 'Elizabeth' which are middle names or initials for HCPs.",
+        "can_be_primary": false,
+        "match_role": "supporting_equals",
+        "composite_with": [
+          "first_name",
+          "last_name"
+        ],
+        "duplicate_behaviour": "optional tightening filter"
+      },
+      "last_name": {
+        "semantic_type": "person_name",
+        "reasoning": "last_name contains surnames like 'Anderson', 'O'Brien', 'Patel' confirming it is the HCP family name.",
+        "can_be_primary": true,
+        "match_role": "primary_name",
+        "composite_with": [
+          "first_name"
+        ],
+        "duplicate_behaviour": "fuzzy match with first_name"
+      },
+      "suffix": {
+        "semantic_type": "credential",
+        "reasoning": "suffix contains values like 'MD', 'DO', 'MBBS MRCP' which are professional degree credentials, not name suffixes.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from match rules"
+      },
+      "gender": {
+        "semantic_type": "demographic",
+        "reasoning": "gender contains values like 'M', 'F', 'Male', 'Female' which are demographic attributes.",
+        "can_be_primary": false,
+        "match_role": "supporting_equals",
+        "composite_with": [],
+        "duplicate_behaviour": "weak filter only"
+      },
+      "dob": {
+        "semantic_type": "demographic",
+        "reasoning": "dob contains date-of-birth values like '1975-11-22' and '03/15/1968' in multiple formats confirming it is a demographic field.",
+        "can_be_primary": false,
+        "match_role": "supporting_equals",
+        "composite_with": [],
+        "duplicate_behaviour": "tightening filter after name match"
+      },
+      "email": {
+        "semantic_type": "contact_info",
+        "reasoning": "email contains values like 'm.anderson@bostonmed.org' and 'sarah.johnson@mayo.edu' which are email addresses.",
+        "can_be_primary": false,
+        "match_role": "supporting_exact",
+        "composite_with": [],
+        "duplicate_behaviour": "exact match as supporting signal"
+      },
+      "phone": {
+        "semantic_type": "contact_info",
+        "reasoning": "phone contains values like '+1-617-555-0101' and '(507) 555-0102' in multiple formats confirming telephone numbers.",
+        "can_be_primary": false,
+        "match_role": "supporting_exact",
+        "composite_with": [],
+        "duplicate_behaviour": "exact match as supporting signal"
+      },
+      "fax": {
+        "semantic_type": "contact_info",
+        "reasoning": "fax contains values like '+1-617-555-0191' and '5075550192' which are fax numbers, a weak contact attribute.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from match rules"
+      },
+      "specialty": {
+        "semantic_type": "taxonomy_code",
+        "reasoning": "specialty contains values like 'Cardiology', 'Family Medicine', 'GI' which are clinical specialty descriptors.",
+        "can_be_primary": false,
+        "match_role": "supporting_equals",
+        "composite_with": [],
+        "duplicate_behaviour": "weak filter only"
+      },
+      "sub_specialty": {
+        "semantic_type": "taxonomy_code",
+        "reasoning": "sub_specialty contains values like 'Interventional Cardiology', 'Epilepsy', 'HIV/AIDS' which are sub-specialty descriptors.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from match rules"
+      },
+      "taxonomy_code": {
+        "semantic_type": "taxonomy_code",
+        "reasoning": "taxonomy_code contains 10-character NUCC codes like '207RC0000X' and '2084N0400X' confirming NUCC provider taxonomy codes.",
+        "can_be_primary": false,
+        "match_role": "supporting_equals",
+        "composite_with": [],
+        "duplicate_behaviour": "exact filter supporting name rules"
+      },
+      "dea_number": {
+        "semantic_type": "strong_identifier",
+        "reasoning": "dea_number contains 9-character alphanumeric values like 'AA1234563' and 'BJ2345674' matching DEA registration number format (2 letters + 7 digits).",
+        "can_be_primary": true,
+        "match_role": "primary_strong",
+        "composite_with": [],
+        "duplicate_behaviour": "exact match triggers suspect group"
+      },
+      "license_number": {
+        "semantic_type": "scoped_identifier",
+        "reasoning": "license_number contains values like 'MN-23456', 'CA-45678', 'UK-GMC-2233445' which are state or country-scoped medical license numbers.",
+        "can_be_primary": true,
+        "match_role": "primary_scoped",
+        "composite_with": [
+          "license_state"
+        ],
+        "duplicate_behaviour": "exact match within license_state scope"
+      },
+      "license_state": {
+        "semantic_type": "address_component",
+        "reasoning": "license_state contains values like 'CA', 'MA', 'Massachusetts' which are the jurisdictional scope for the license number.",
+        "can_be_primary": false,
+        "match_role": "supporting_equals",
+        "composite_with": [
+          "license_number"
+        ],
+        "duplicate_behaviour": "scope constraint for license match"
+      },
+      "practice_name": {
+        "semantic_type": "organization_name",
+        "reasoning": "practice_name contains values like 'Boston Medical Center', 'Mayo Clinic', 'BMC' which are healthcare organization names.",
+        "can_be_primary": false,
+        "match_role": "supporting_equals",
+        "composite_with": [],
+        "duplicate_behaviour": "weak supporting filter only"
+      },
+      "practice_type": {
+        "semantic_type": "free_text",
+        "reasoning": "practice_type contains values like 'Hospital', 'Academic Medical Center', 'NHS Trust' which are descriptive category labels.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from match rules"
+      },
+      "address1": {
+        "semantic_type": "address_component",
+        "reasoning": "address1 contains street address values like '1 Boston Medical Center Pl' and '600 N Wolfe St' confirming primary street address.",
+        "can_be_primary": false,
+        "match_role": "primary_composite",
+        "composite_with": [
+          "address2",
+          "city",
+          "state",
+          "zip",
+          "country"
+        ],
+        "duplicate_behaviour": "fuzzy composite address group"
+      },
+      "address2": {
+        "semantic_type": "address_component",
+        "reasoning": "address2 contains secondary address values like 'Suite 200', 'Blalock 369' confirming secondary address line.",
+        "can_be_primary": false,
+        "match_role": "primary_composite",
+        "composite_with": [
+          "address1",
+          "city",
+          "state",
+          "zip",
+          "country"
+        ],
+        "duplicate_behaviour": "optional component of composite address"
+      },
+      "city": {
+        "semantic_type": "address_component",
+        "reasoning": "city contains values like 'Boston', 'San Francisco', 'London' confirming city component of address.",
+        "can_be_primary": false,
+        "match_role": "primary_composite",
+        "composite_with": [
+          "address1",
+          "state",
+          "zip",
+          "country"
+        ],
+        "duplicate_behaviour": "component of composite address group"
+      },
+      "state": {
+        "semantic_type": "address_component",
+        "reasoning": "state contains values like 'MA', 'California', 'Tamil Nadu' confirming state or region component of address.",
+        "can_be_primary": false,
+        "match_role": "primary_composite",
+        "composite_with": [
+          "address1",
+          "city",
+          "zip",
+          "country"
+        ],
+        "duplicate_behaviour": "component of composite address group"
+      },
+      "zip": {
+        "semantic_type": "address_component",
+        "reasoning": "zip contains values like '02118', '94143-0628', 'NW1 2BU' confirming postal code component of address.",
+        "can_be_primary": false,
+        "match_role": "primary_composite",
+        "composite_with": [
+          "address1",
+          "city",
+          "state",
+          "country"
+        ],
+        "duplicate_behaviour": "component of composite address group"
+      },
+      "country": {
+        "semantic_type": "address_component",
+        "reasoning": "country contains values like 'US', 'USA', 'IN', 'India' confirming country component of address.",
+        "can_be_primary": false,
+        "match_role": "primary_composite",
+        "composite_with": [
+          "address1",
+          "city",
+          "state",
+          "zip"
+        ],
+        "duplicate_behaviour": "component of composite address group"
+      },
+      "npi_type": {
+        "semantic_type": "system_field",
+        "reasoning": "npi_type contains values like 'Individual' and '1' which are NPI registry classification codes, not matchable HCP attributes.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from match rules"
+      },
+      "npi_status": {
+        "semantic_type": "system_field",
+        "reasoning": "npi_status contains values like 'Active' and 'A' which are NPI registry status flags, not matchable HCP attributes.",
+        "can_be_primary": false,
+        "match_role": "supporting_equals",
+        "composite_with": [],
+        "duplicate_behaviour": "active-only filter if needed"
+      },
+      "npi_enumerationDate": {
+        "semantic_type": "system_field",
+        "reasoning": "npi_enumerationDate contains NPI registry enumeration dates like '2005-06-12' which are administrative timestamps.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from match rules"
+      },
+      "source": {
+        "semantic_type": "system_field",
+        "reasoning": "source contains values like 'CMS', 'EHR', 'Veeva', 'IQVIA' which are data source system identifiers.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from match rules"
+      },
+      "notes": {
+        "semantic_type": "free_text",
+        "reasoning": "notes contains long descriptive text like 'Dup G002: Sara vs Sarah, prefix no dot...' which are free-form data quality annotations.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from match rules"
+      }
+    }
+  },
+  "4e5d6596680616e2a436bf03fe8356e9df98b8937032f895c616044d2aec9519": {
+    "columns": {
+      "record_id": {
+        "semantic_type": "system_field",
+        "reasoning": "record_id contains internal alphanumeric codes like 'G001' and 'D001' that are source-system row identifiers, not real-world HCP identifiers.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "ignore in all match rules"
+      },
+      "record_type": {
+        "semantic_type": "system_field",
+        "reasoning": "record_type contains values like 'GOLDEN', 'DUPLICATE', 'NPI_TYPO' which are internal data-quality labels, not matchable attributes.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "ignore in all match rules"
+      },
+      "npi": {
+        "semantic_type": "strong_identifier",
+        "reasoning": "npi contains 10-digit numbers like '1234567890' consistent with the National Provider Identifier standard.",
+        "can_be_primary": true,
+        "match_role": "primary_strong",
+        "composite_with": [],
+        "duplicate_behaviour": "auto-link on exact match"
+      },
+      "prefix": {
+        "semantic_type": "person_name",
+        "reasoning": "prefix contains values like 'Dr.' and 'Dr' which are honorific prefixes for an HCP person name.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from match rules"
+      },
+      "first_name": {
+        "semantic_type": "person_name",
+        "reasoning": "first_name contains given names like 'Emily', 'Michael', and nicknames like 'Mike' confirming it is the HCP first name.",
+        "can_be_primary": true,
+        "match_role": "primary_name",
+        "composite_with": [
+          "last_name"
+        ],
+        "duplicate_behaviour": "fuzzy match with last_name"
+      },
+      "middle_name": {
+        "semantic_type": "person_name",
+        "reasoning": "middle_name contains values like 'James', 'K.', 'Elizabeth' which are middle names or initials for the HCP.",
+        "can_be_primary": false,
+        "match_role": "supporting_equals",
+        "composite_with": [
+          "first_name",
+          "last_name"
+        ],
+        "duplicate_behaviour": "tighten name group when present"
+      },
+      "last_name": {
+        "semantic_type": "person_name",
+        "reasoning": "last_name contains surnames like 'Anderson', 'O'Brien', 'Patel' confirming it is the HCP family name.",
+        "can_be_primary": true,
+        "match_role": "primary_name",
+        "composite_with": [
+          "first_name"
+        ],
+        "duplicate_behaviour": "fuzzy match with first_name"
+      },
+      "suffix": {
+        "semantic_type": "credential",
+        "reasoning": "suffix contains values like 'MD', 'DO', 'MBBS MRCP' which are professional degree credentials, not name suffixes.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from match rules"
+      },
+      "gender": {
+        "semantic_type": "demographic",
+        "reasoning": "gender contains values like 'M', 'F', 'Male', 'Female' which are demographic attributes.",
+        "can_be_primary": false,
+        "match_role": "supporting_equals",
+        "composite_with": [],
+        "duplicate_behaviour": "filter only, never primary"
+      },
+      "dob": {
+        "semantic_type": "demographic",
+        "reasoning": "dob contains date-of-birth values like '1975-11-22' and '03/15/1968' in multiple formats confirming it is a demographic field.",
+        "can_be_primary": false,
+        "match_role": "supporting_equals",
+        "composite_with": [],
+        "duplicate_behaviour": "tighten suspect groups when present"
+      },
+      "email": {
+        "semantic_type": "contact_info",
+        "reasoning": "email contains email addresses like 'm.anderson@bostonmed.org' which are contact identifiers, weak and variant-prone.",
+        "can_be_primary": false,
+        "match_role": "supporting_equals",
+        "composite_with": [],
+        "duplicate_behaviour": "supporting signal only, never primary"
+      },
+      "phone": {
+        "semantic_type": "contact_info",
+        "reasoning": "phone contains phone numbers like '+1-617-555-0101' and '617-555-0101' in multiple formats confirming contact info.",
+        "can_be_primary": false,
+        "match_role": "supporting_equals",
+        "composite_with": [],
+        "duplicate_behaviour": "supporting signal only, never primary"
+      },
+      "fax": {
+        "semantic_type": "contact_info",
+        "reasoning": "fax contains fax numbers like '+1-617-555-0191' and '5075550192' which are contact details with high missingness.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from match rules"
+      },
+      "specialty": {
+        "semantic_type": "taxonomy_code",
+        "reasoning": "specialty contains clinical specialty text like 'Cardiology', 'Family Medicine', 'GI' which are specialty descriptors.",
+        "can_be_primary": false,
+        "match_role": "supporting_equals",
+        "composite_with": [],
+        "duplicate_behaviour": "supporting filter only"
+      },
+      "sub_specialty": {
+        "semantic_type": "taxonomy_code",
+        "reasoning": "sub_specialty contains values like 'Interventional Cardiology', 'HIV/AIDS', 'Sports Med' which are sub-specialty descriptors.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from match rules"
+      },
+      "taxonomy_code": {
+        "semantic_type": "taxonomy_code",
+        "reasoning": "taxonomy_code contains 10-character NUCC codes like '207RC0000X' and '2084N0400X' which are standard provider taxonomy codes.",
+        "can_be_primary": false,
+        "match_role": "supporting_equals",
+        "composite_with": [],
+        "duplicate_behaviour": "supporting filter only"
+      },
+      "dea_number": {
+        "semantic_type": "strong_identifier",
+        "reasoning": "dea_number contains 9-character alphanumeric values like 'AA1234563' matching the letter(s)+7-digits DEA number pattern.",
+        "can_be_primary": true,
+        "match_role": "primary_strong",
+        "composite_with": [],
+        "duplicate_behaviour": "auto-link on exact match"
+      },
+      "license_number": {
+        "semantic_type": "scoped_identifier",
+        "reasoning": "license_number contains values like 'MN-23456', 'CA-45678', 'UK-GMC-2233445' which are state/country-scoped medical license numbers.",
+        "can_be_primary": true,
+        "match_role": "primary_scoped",
+        "composite_with": [
+          "license_state"
+        ],
+        "duplicate_behaviour": "link within license_state scope"
+      },
+      "license_state": {
+        "semantic_type": "address_component",
+        "reasoning": "license_state contains values like 'CA', 'MN', 'Massachusetts' which define the jurisdiction scope for the license number.",
+        "can_be_primary": false,
+        "match_role": "supporting_exact",
+        "composite_with": [
+          "license_number"
+        ],
+        "duplicate_behaviour": "scope constraint for license match"
+      },
+      "practice_name": {
+        "semantic_type": "organization_name",
+        "reasoning": "practice_name contains hospital and clinic names like 'Mayo Clinic', 'Cleveland Clinic', 'BMC' which are organization names.",
+        "can_be_primary": false,
+        "match_role": "supporting_equals",
+        "composite_with": [],
+        "duplicate_behaviour": "supporting signal only"
+      },
+      "practice_type": {
+        "semantic_type": "free_text",
+        "reasoning": "practice_type contains descriptive labels like 'Academic Medical Center', 'NHS Trust', 'Teaching Hospital' which are low-cardinality descriptors.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from match rules"
+      },
+      "address1": {
+        "semantic_type": "address_component",
+        "reasoning": "address1 contains street address values like '1 Boston Medical Center Pl' and '600 N Wolfe St' confirming street line.",
+        "can_be_primary": false,
+        "match_role": "primary_composite",
+        "composite_with": [
+          "address2",
+          "city",
+          "state",
+          "zip",
+          "country"
+        ],
+        "duplicate_behaviour": "fuzzy composite address group"
+      },
+      "address2": {
+        "semantic_type": "address_component",
+        "reasoning": "address2 contains secondary address lines like 'Suite 200', 'Blalock 369' which are address sub-unit components.",
+        "can_be_primary": false,
+        "match_role": "primary_composite",
+        "composite_with": [
+          "address1",
+          "city",
+          "state",
+          "zip",
+          "country"
+        ],
+        "duplicate_behaviour": "part of composite address group"
+      },
+      "city": {
+        "semantic_type": "address_component",
+        "reasoning": "city contains city names like 'Boston', 'Chicago', 'London' confirming it is an address component.",
+        "can_be_primary": false,
+        "match_role": "primary_composite",
+        "composite_with": [
+          "address1",
+          "address2",
+          "state",
+          "zip",
+          "country"
+        ],
+        "duplicate_behaviour": "part of composite address group"
+      },
+      "state": {
+        "semantic_type": "address_component",
+        "reasoning": "state contains values like 'MA', 'California', 'Tamil Nadu' which are state or region address components.",
+        "can_be_primary": false,
+        "match_role": "primary_composite",
+        "composite_with": [
+          "address1",
+          "address2",
+          "city",
+          "zip",
+          "country"
+        ],
+        "duplicate_behaviour": "part of composite address group"
+      },
+      "zip": {
+        "semantic_type": "address_component",
+        "reasoning": "zip contains postal codes like '02118', '94143-0628', 'NW1 2BU' confirming it is a postal code address component.",
+        "can_be_primary": false,
+        "match_role": "primary_composite",
+        "composite_with": [
+          "address1",
+          "address2",
+          "city",
+          "state",
+          "country"
+        ],
+        "duplicate_behaviour": "part of composite address group"
+      },
+      "country": {
+        "semantic_type": "address_component",
+        "reasoning": "country contains ISO country codes and names like 'US', 'USA', 'IN', 'India' confirming it is a country address component.",
+        "can_be_primary": false,
+        "match_role": "supporting_exact",
+        "composite_with": [
+          "address1",
+          "city",
+          "state",
+          "zip"
+        ],
+        "duplicate_behaviour": "scope constraint for address group"
+      },
+      "npi_type": {
+        "semantic_type": "system_field",
+        "reasoning": "npi_type contains values like 'Individual' and '1' which are NPI registry type codes, not matchable HCP attributes.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from match rules"
+      },
+      "npi_status": {
+        "semantic_type": "system_field",
+        "reasoning": "npi_status contains values like 'Active' and 'A' which are NPI registry status flags, not matchable attributes.",
+        "can_be_primary": false,
+        "match_role": "supporting_equals",
+        "composite_with": [],
+        "duplicate_behaviour": "filter active records only"
+      },
+      "npi_enumerationDate": {
+        "semantic_type": "system_field",
+        "reasoning": "npi_enumerationDate contains NPI registry enumeration dates like '2005-06-12' which are administrative timestamps.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from match rules"
+      },
+      "source": {
+        "semantic_type": "system_field",
+        "reasoning": "source contains data origin labels like 'CMS', 'EHR', 'Veeva', 'NHS Registry' which are source system identifiers.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from match rules"
+      },
+      "notes": {
+        "semantic_type": "free_text",
+        "reasoning": "notes contains long descriptive text like 'Dup G002: Sara vs Sarah, prefix no dot...' which are free-form data quality annotations.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from all match rules"
+      }
+    }
+  },
+  "c9af25f0b3dd0dc280fd465d4177d8dec734e064792a46f708b9b1e9b68ddf21": {
+    "matchGroups": [
+      {
+        "uri": "configuration/entityTypes/HCP/matchGroups/MatchOnNPI",
+        "label": "Auto-merge on exact NPI match",
+        "type": "automatic",
+        "scope": "ALL",
+        "useOvOnly": "true",
+        "scoreStandalone": 0,
+        "scoreIncremental": 0,
+        "rule": {
+          "matchTokenClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/npi",
+                "class": "com.reltio.match.token.ExactMatchToken"
+              }
+            ]
+          },
+          "comparatorClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/npi",
+                "class": "com.reltio.match.comparator.ExactComparator"
+              }
+            ]
+          },
+          "and": {
+            "exact": [
+              "configuration/entityTypes/HCP/attributes/npi"
+            ]
+          }
+        }
+      },
+      {
+        "uri": "configuration/entityTypes/HCP/matchGroups/MatchOnDEANumber",
+        "label": "Auto-merge on exact DEA number match",
+        "type": "automatic",
+        "scope": "ALL",
+        "useOvOnly": "true",
+        "scoreStandalone": 0,
+        "scoreIncremental": 0,
+        "rule": {
+          "matchTokenClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/dea_number",
+                "class": "com.reltio.match.token.ExactMatchToken"
+              }
+            ]
+          },
+          "comparatorClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/dea_number",
+                "class": "com.reltio.match.comparator.ExactComparator"
+              }
+            ]
+          },
+          "and": {
+            "exact": [
+              "configuration/entityTypes/HCP/attributes/dea_number"
+            ]
+          }
+        }
+      },
+      {
+        "uri": "configuration/entityTypes/HCP/matchGroups/MatchOnLicenseNumberAndState",
+        "label": "Suspect match on license number within license state scope",
+        "type": "suspect",
+        "scope": "ALL",
+        "useOvOnly": "true",
+        "scoreStandalone": 0,
+        "scoreIncremental": 0,
+        "rule": {
+          "matchTokenClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/license_number",
+                "class": "com.reltio.match.token.ExactMatchToken"
+              },
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/license_state",
+                "class": "com.reltio.match.token.ExactMatchToken"
+              }
+            ]
+          },
+          "comparatorClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/license_number",
+                "class": "com.reltio.match.comparator.ExactComparator"
+              },
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/license_state",
+                "class": "com.reltio.match.comparator.ExactComparator"
+              }
+            ]
+          },
+          "and": {
+            "exact": [
+              "configuration/entityTypes/HCP/attributes/license_number",
+              "configuration/entityTypes/HCP/attributes/license_state"
+            ]
+          }
+        }
+      },
+      {
+        "uri": "configuration/entityTypes/HCP/matchGroups/MatchOnPersonName",
+        "label": "Suspect match on last name phonetic and first name fuzzy with DOB and middle name",
+        "type": "suspect",
+        "scope": "ALL",
+        "useOvOnly": "true",
+        "scoreStandalone": 0,
+        "scoreIncremental": 0,
+        "rule": {
+          "matchTokenClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/last_name",
+                "class": "com.reltio.match.token.DoubleMetaphoneMatchToken"
+              },
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/first_name",
+                "class": "com.reltio.match.token.DoubleMetaphoneMatchToken"
+              },
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/dob",
+                "class": "com.reltio.match.token.ExactMatchToken"
+              }
+            ]
+          },
+          "comparatorClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/last_name",
+                "class": "com.reltio.match.comparator.DoubleMetaphoneComparator"
+              },
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/first_name",
+                "class": "com.reltio.match.comparator.DoubleMetaphoneComparator"
+              },
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/dob",
+                "class": "com.reltio.match.comparator.ExactComparator"
+              },
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/middle_name",
+                "class": "com.reltio.match.comparator.ExactComparator"
+              }
+            ]
+          },
+          "and": {
+            "exact": [
+              "configuration/entityTypes/HCP/attributes/last_name",
+              "configuration/entityTypes/HCP/attributes/dob"
+            ],
+            "fuzzy": [
+              "configuration/entityTypes/HCP/attributes/first_name"
+            ],
+            "exactOrNull": [
+              "configuration/entityTypes/HCP/attributes/middle_name"
+            ]
+          }
+        }
+      },
+      {
+        "uri": "configuration/entityTypes/HCP/matchGroups/MatchOnPersonNameNoDoB",
+        "label": "Suspect match on last name phonetic and first name fuzzy without DOB",
+        "type": "suspect",
+        "scope": "ALL",
+        "useOvOnly": "true",
+        "scoreStandalone": 0,
+        "scoreIncremental": 0,
+        "rule": {
+          "matchTokenClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/last_name",
+                "class": "com.reltio.match.token.DoubleMetaphoneMatchToken"
+              },
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/first_name",
+                "class": "com.reltio.match.token.DoubleMetaphoneMatchToken"
+              }
+            ]
+          },
+          "comparatorClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/last_name",
+                "class": "com.reltio.match.comparator.DoubleMetaphoneComparator"
+              },
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/first_name",
+                "class": "com.reltio.match.comparator.DoubleMetaphoneComparator"
+              }
+            ]
+          },
+          "and": {
+            "exact": [
+              "configuration/entityTypes/HCP/attributes/last_name"
+            ],
+            "fuzzy": [
+              "configuration/entityTypes/HCP/attributes/first_name"
+            ]
+          }
+        }
+      },
+      {
+        "uri": "configuration/entityTypes/HCP/matchGroups/MatchOnPracticeName",
+        "label": "Suspect match on practice organization name phonetic",
+        "type": "suspect",
+        "scope": "ALL",
+        "useOvOnly": "true",
+        "scoreStandalone": 0,
+        "scoreIncremental": 0,
+        "rule": {
+          "matchTokenClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/practice_name",
+                "class": "com.reltio.match.token.DoubleMetaphoneMatchToken"
+              }
+            ]
+          },
+          "comparatorClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/practice_name",
+                "class": "com.reltio.match.comparator.DoubleMetaphoneComparator"
+              }
+            ]
+          },
+          "and": {
+            "fuzzy": [
+              "configuration/entityTypes/HCP/attributes/practice_name"
+            ]
+          }
+        }
+      },
+      {
+        "uri": "configuration/entityTypes/HCP/matchGroups/MatchOnAddress",
+        "label": "Suspect match on street address, city and state",
+        "type": "suspect",
+        "scope": "ALL",
+        "useOvOnly": "true",
+        "scoreStandalone": 0,
+        "scoreIncremental": 0,
+        "rule": {
+          "matchTokenClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/address1",
+                "class": "com.reltio.match.token.ExactMatchToken"
+              },
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/city",
+                "class": "com.reltio.match.token.ExactMatchToken"
+              },
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/state",
+                "class": "com.reltio.match.token.ExactMatchToken"
+              }
+            ]
+          },
+          "comparatorClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/address1",
+                "class": "com.reltio.match.comparator.ExactComparator"
+              },
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/city",
+                "class": "com.reltio.match.comparator.ExactComparator"
+              },
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/state",
+                "class": "com.reltio.match.comparator.ExactComparator"
+              }
+            ]
+          },
+          "and": {
+            "exact": [
+              "configuration/entityTypes/HCP/attributes/address1",
+              "configuration/entityTypes/HCP/attributes/city",
+              "configuration/entityTypes/HCP/attributes/state"
+            ]
+          }
+        }
+      },
+      {
+        "uri": "configuration/entityTypes/HCP/matchGroups/MatchOnRelevanceNameAndDemographics",
+        "label": "Relevance-based match on name, DOB, gender and specialty",
+        "type": "relevance_based",
+        "scope": "ALL",
+        "useOvOnly": "true",
+        "scoreStandalone": 0,
+        "scoreIncremental": 0,
+        "rule": {
+          "matchTokenClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/last_name",
+                "class": "com.reltio.match.token.DoubleMetaphoneMatchToken"
+              },
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/dob",
+                "class": "com.reltio.match.token.ExactMatchToken"
+              }
+            ]
+          },
+          "comparatorClasses": {
+            "mapping": [
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/first_name",
+                "class": "com.reltio.match.comparator.JaroComparator"
+              },
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/last_name",
+                "class": "com.reltio.match.comparator.JaroComparator"
+              },
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/dob",
+                "class": "com.reltio.match.comparator.ExactComparator"
+              },
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/gender",
+                "class": "com.reltio.match.comparator.ExactComparator"
+              },
+              {
+                "attribute": "configuration/entityTypes/HCP/attributes/specialty",
+                "class": "com.reltio.match.comparator.JaroComparator"
+              }
+            ]
+          },
+          "weights": [
+            {
+              "attribute": "configuration/entityTypes/HCP/attributes/last_name",
+              "weight": 0.3
+            },
+            {
+              "attribute": "configuration/entityTypes/HCP/attributes/first_name",
+              "weight": 0.25
+            },
+            {
+              "attribute": "configuration/entityTypes/HCP/attributes/dob",
+              "weight": 0.25
+            },
+            {
+              "attribute": "configuration/entityTypes/HCP/attributes/gender",
+              "weight": 0.1
+            },
+            {
+              "attribute": "configuration/entityTypes/HCP/attributes/specialty",
+              "weight": 0.1
+            }
+          ],
+          "actionThresholds": [
+            {
+              "type": "queue_for_review",
+              "threshold": "0.0-0.6"
+            },
+            {
+              "type": "auto_merge",
+              "threshold": "0.6-1.0"
+            }
+          ],
+          "and": {
+            "fuzzy": [
+              "configuration/entityTypes/HCP/attributes/last_name"
+            ]
+          }
+        }
+      },
+      {
+        "uri": "configuration/entityTypes/HCP/matchGroups/NegativeRuleOnGender",
+        "label": "Negative Rule - Do not merge if gender differs",
+        "scope": "ALL",
+        "negativeRule": {
+          "and": {
+            "notExactSame": [
+              "configuration/entityTypes/HCP/attributes/gender"
+            ]
+          }
+        }
+      },
+      {
+        "uri": "configuration/entityTypes/HCP/matchGroups/NegativeRuleOnDoB",
+        "label": "Negative Rule - Do not merge if date of birth differs",
+        "scope": "ALL",
+        "negativeRule": {
+          "and": {
+            "notExactSame": [
+              "configuration/entityTypes/HCP/attributes/dob"
+            ]
+          }
+        }
+      },
+      {
+        "uri": "configuration/entityTypes/HCP/matchGroups/NegativeRuleOnSpecialty",
+        "label": "Negative Rule - Do not merge if specialty differs",
+        "scope": "ALL",
+        "negativeRule": {
+          "and": {
+            "notExactSame": [
+              "configuration/entityTypes/HCP/attributes/specialty"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "692caaf8b20fcdf62dbe6225450b1ca396083e43589d9938c81ef0f55c61c507": {
+    "columns": {
+      "record_id": {
+        "semantic_type": "system_field",
+        "reasoning": "record_id contains internal alphanumeric codes like 'G001', 'D001', 'T001' that are source-system row identifiers, not real-world HCP identifiers.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "ignore in all match rules"
+      },
+      "record_type": {
+        "semantic_type": "system_field",
+        "reasoning": "record_type contains values like 'GOLDEN', 'DUPLICATE', 'NPI_TYPO' which are internal data-quality labels, not matchable attributes.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "ignore in all match rules"
+      },
+      "npi": {
+        "semantic_type": "strong_identifier",
+        "reasoning": "npi contains 10-digit numbers like '1234567890' consistent with the National Provider Identifier standard.",
+        "can_be_primary": true,
+        "match_role": "primary_strong",
+        "composite_with": [],
+        "duplicate_behaviour": "auto-link on exact match"
+      },
+      "prefix": {
+        "semantic_type": "person_name",
+        "reasoning": "prefix contains values like 'Dr.' and 'Dr' which are honorific prefixes for an HCP person name.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from match rules"
+      },
+      "first_name": {
+        "semantic_type": "person_name",
+        "reasoning": "first_name contains given names like 'Emily', 'Michael', 'Rajesh' and nicknames like 'Mike', 'Raj' confirming it is the HCP first name.",
+        "can_be_primary": true,
+        "match_role": "primary_name",
+        "composite_with": [
+          "last_name"
+        ],
+        "duplicate_behaviour": "fuzzy match with last_name"
+      },
+      "middle_name": {
+        "semantic_type": "person_name",
+        "reasoning": "middle_name contains values like 'James', 'Elizabeth', 'K.' which are middle names or initials for the HCP.",
+        "can_be_primary": false,
+        "match_role": "supporting_equals",
+        "composite_with": [
+          "first_name",
+          "last_name"
+        ],
+        "duplicate_behaviour": "optional tiebreaker in name match"
+      },
+      "last_name": {
+        "semantic_type": "person_name",
+        "reasoning": "last_name contains surnames like 'Anderson', 'Patel', \"O'Brien\" confirming it is the HCP family name.",
+        "can_be_primary": true,
+        "match_role": "primary_name",
+        "composite_with": [
+          "first_name"
+        ],
+        "duplicate_behaviour": "fuzzy match with first_name"
+      },
+      "suffix": {
+        "semantic_type": "credential",
+        "reasoning": "suffix contains values like 'MD', 'DO', 'MD PhD', 'MBBS MRCP' which are professional degree credentials, not name suffixes.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from match rules"
+      },
+      "gender": {
+        "semantic_type": "demographic",
+        "reasoning": "gender contains values like 'F', 'M', 'Male', 'Female' which are demographic attributes.",
+        "can_be_primary": false,
+        "match_role": "supporting_equals",
+        "composite_with": [],
+        "duplicate_behaviour": "weak filter only, normalise first"
+      },
+      "dob": {
+        "semantic_type": "demographic",
+        "reasoning": "dob contains date-of-birth values like '1975-11-22' and '03/15/1968' in multiple formats confirming it is a demographic birth date.",
+        "can_be_primary": false,
+        "match_role": "supporting_equals",
+        "composite_with": [],
+        "duplicate_behaviour": "tighten suspect groups after normalisation"
+      },
+      "email": {
+        "semantic_type": "contact_info",
+        "reasoning": "email contains email addresses like 'm.anderson@bostonmed.org' and 'sarah.johnson@mayo.edu' which are contact identifiers.",
+        "can_be_primary": false,
+        "match_role": "supporting_exact",
+        "composite_with": [],
+        "duplicate_behaviour": "exact match as supporting signal only"
+      },
+      "phone": {
+        "semantic_type": "contact_info",
+        "reasoning": "phone contains phone numbers in multiple formats like '+1-617-555-0101' and '(507) 555-0102' confirming contact info.",
+        "can_be_primary": false,
+        "match_role": "supporting_exact",
+        "composite_with": [],
+        "duplicate_behaviour": "normalise then use as supporting signal"
+      },
+      "fax": {
+        "semantic_type": "contact_info",
+        "reasoning": "fax contains fax numbers like '+1-617-555-0191' and '5075550192' which are contact details with high missingness.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from match rules"
+      },
+      "specialty": {
+        "semantic_type": "taxonomy_code",
+        "reasoning": "specialty contains clinical specialty text like 'Cardiology', 'Neurology', 'Family Medicine' which are specialty/taxonomy descriptors.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from match rules"
+      },
+      "sub_specialty": {
+        "semantic_type": "taxonomy_code",
+        "reasoning": "sub_specialty contains values like 'Interventional Cardiology', 'Epilepsy', 'HIV/AIDS' which are sub-specialty descriptors.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from match rules"
+      },
+      "taxonomy_code": {
+        "semantic_type": "taxonomy_code",
+        "reasoning": "taxonomy_code contains 10-character NUCC codes like '207RC0000X' and '2084N0400X' which are standard provider taxonomy codes.",
+        "can_be_primary": false,
+        "match_role": "supporting_equals",
+        "composite_with": [],
+        "duplicate_behaviour": "use as supporting filter only"
+      },
+      "dea_number": {
+        "semantic_type": "strong_identifier",
+        "reasoning": "dea_number contains 9-character alphanumeric codes like 'AA1234563' and 'BJ2345674' matching the DEA registration number pattern of two letters followed by seven digits.",
+        "can_be_primary": true,
+        "match_role": "primary_strong",
+        "composite_with": [],
+        "duplicate_behaviour": "auto-link on exact match"
+      },
+      "license_number": {
+        "semantic_type": "scoped_identifier",
+        "reasoning": "license_number contains state-prefixed codes like 'MN-23456', 'CA-45678' and international variants like 'UK-GMC-2233445' which are scoped medical license numbers.",
+        "can_be_primary": true,
+        "match_role": "primary_scoped",
+        "composite_with": [
+          "license_state"
+        ],
+        "duplicate_behaviour": "link within license_state scope"
+      },
+      "license_state": {
+        "semantic_type": "address_component",
+        "reasoning": "license_state contains state/jurisdiction codes like 'CA', 'MA', 'MN' that define the scope for license_number matching.",
+        "can_be_primary": false,
+        "match_role": "supporting_equals",
+        "composite_with": [
+          "license_number"
+        ],
+        "duplicate_behaviour": "scope constraint for license match"
+      },
+      "practice_name": {
+        "semantic_type": "organization_name",
+        "reasoning": "practice_name contains hospital and clinic names like 'Boston Medical Center', 'Mayo Clinic', 'Johns Hopkins Hospital' which are HCP affiliation organisation names.",
+        "can_be_primary": false,
+        "match_role": "supporting_equals",
+        "composite_with": [],
+        "duplicate_behaviour": "fuzzy supporting signal only"
+      },
+      "practice_type": {
+        "semantic_type": "free_text",
+        "reasoning": "practice_type contains descriptive labels like 'Hospital', 'Academic Medical Center', 'NHS Trust' which are categorical descriptors not useful for matching.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from match rules"
+      },
+      "address1": {
+        "semantic_type": "address_component",
+        "reasoning": "address1 contains street address values like '1 Boston Medical Center Pl', '200 First St SW' confirming it is the primary street address line.",
+        "can_be_primary": false,
+        "match_role": "primary_composite",
+        "composite_with": [
+          "address2",
+          "city",
+          "state",
+          "zip",
+          "country"
+        ],
+        "duplicate_behaviour": "fuzzy composite address match"
+      },
+      "address2": {
+        "semantic_type": "address_component",
+        "reasoning": "address2 contains secondary address details like 'Suite 200', 'Blalock 369' which are supplementary address components.",
+        "can_be_primary": false,
+        "match_role": "primary_composite",
+        "composite_with": [
+          "address1",
+          "city",
+          "state",
+          "zip",
+          "country"
+        ],
+        "duplicate_behaviour": "optional component in composite address"
+      },
+      "city": {
+        "semantic_type": "address_component",
+        "reasoning": "city contains city names like 'Boston', 'San Francisco', 'London' confirming it is the address city component.",
+        "can_be_primary": false,
+        "match_role": "primary_composite",
+        "composite_with": [
+          "address1",
+          "address2",
+          "state",
+          "zip",
+          "country"
+        ],
+        "duplicate_behaviour": "part of composite address group"
+      },
+      "state": {
+        "semantic_type": "address_component",
+        "reasoning": "state contains values like 'MA', 'CA', 'Minnesota', 'Tamil Nadu' which are state or region components of the address.",
+        "can_be_primary": false,
+        "match_role": "primary_composite",
+        "composite_with": [
+          "address1",
+          "address2",
+          "city",
+          "zip",
+          "country"
+        ],
+        "duplicate_behaviour": "normalise then use in composite address"
+      },
+      "zip": {
+        "semantic_type": "address_component",
+        "reasoning": "zip contains postal codes like '02118', '94143-0628', 'NW1 2BU' which are ZIP or postal code address components.",
+        "can_be_primary": false,
+        "match_role": "primary_composite",
+        "composite_with": [
+          "address1",
+          "address2",
+          "city",
+          "state",
+          "country"
+        ],
+        "duplicate_behaviour": "normalise then use in composite address"
+      },
+      "country": {
+        "semantic_type": "address_component",
+        "reasoning": "country contains ISO country codes and names like 'US', 'USA', 'IN', 'India' confirming it is the address country component.",
+        "can_be_primary": false,
+        "match_role": "supporting_equals",
+        "composite_with": [
+          "address1",
+          "city",
+          "state",
+          "zip"
+        ],
+        "duplicate_behaviour": "normalise ISO code as scope filter"
+      },
+      "npi_type": {
+        "semantic_type": "system_field",
+        "reasoning": "npi_type contains values like 'Individual' and '1' which are NPI registry type codes, not matchable HCP attributes.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from match rules"
+      },
+      "npi_status": {
+        "semantic_type": "system_field",
+        "reasoning": "npi_status contains values like 'Active' and 'A' which are NPI registry status flags, not matchable HCP attributes.",
+        "can_be_primary": false,
+        "match_role": "supporting_equals",
+        "composite_with": [],
+        "duplicate_behaviour": "filter inactive records only"
+      },
+      "npi_enumerationDate": {
+        "semantic_type": "system_field",
+        "reasoning": "npi_enumerationDate contains NPI registry enumeration dates like '2005-06-12' and '02/19/2008' which are administrative timestamps.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from match rules"
+      },
+      "source": {
+        "semantic_type": "system_field",
+        "reasoning": "source contains data origin labels like 'CMS', 'EHR', 'Veeva', 'IQVIA' which identify the contributing system, not HCP attributes.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "use for survivorship priority only"
+      },
+      "notes": {
+        "semantic_type": "free_text",
+        "reasoning": "notes contains long descriptive text like 'Dup G002: Sara vs Sarah, prefix no dot...' which are free-form data quality annotations.",
+        "can_be_primary": false,
+        "match_role": "not_matchable",
+        "composite_with": [],
+        "duplicate_behaviour": "exclude from all match rules"
+      }
+    }
+  },
+  "354c33f772752e4ad169fef23a9c19a329a7092b5154f361afe41148dc22f576": {
+    "matchGroups": [
+      {
+        "uri": "configuration/entityTypes/HCP/matchGroups/MatchOnNPI",
+        "label": "Auto-merge on exact NPI match",
+        "type": "automatic",
+        "scope": "ALL",
+        "useOvOnly": "true",
+        "scoreStandalone": 0,
+        "scoreIncremental": 0,
+        "matchTokenClasses": [
+          {
+            "uri": "configuration/entityTypes/HCP/matchGroups/MatchOnNPI/matchTokenClasses/NPIToken",
+            "type": "com.reltio.match.token.ExactMatchToken",
+            "attributes": [
+              {
+                "uri": "configuration/entityTypes/HCP/attributes/npi"
+              }
+            ]
+          }
+        ],
+        "comparatorClasses": [
+          {
+            "uri": "configuration/entityTypes/HCP/matchGroups/MatchOnNPI/comparatorClasses/NPIComparator",
+            "type": "com.reltio.match.comparator.ExactComparator",
+            "attributes": [
+              {
+                "uri": "configuration/entityTypes/HCP/attributes/npi"
+              }
+            ]
+          }
+        ],
+        "rule": {
+          "and": {
+            "exact": [
+              "configuration/entityTypes/HCP/attributes/npi"
+            ]
+          }
+        }
+      },
+      {
+        "uri": "configuration/entityTypes/HCP/matchGroups/MatchOnDEANumber",
+        "label": "Auto-merge on exact DEA number match",
+        "type": "automatic",
+        "scope": "ALL",
+        "useOvOnly": "true",
+        "scoreStandalone": 0,
+        "scoreIncremental": 0,
+        "matchTokenClasses": [
+          {
+            "uri": "configuration/entityTypes/HCP/matchGroups/MatchOnDEANumber/matchTokenClasses/DEAToken",
+            "type": "com.reltio.match.token.ExactMatchToken",
+            "attributes": [
+              {
+                "uri": "configuration/entityTypes/HCP/attributes/dea_number"
+              }
+            ]
+          }
+        ],
+        "comparatorClasses": [
+          {
+            "uri": "configuration/entityTypes/HCP/matchGroups/MatchOnDEANumber/comparatorClasses/DEAComparator",
+            "type": "com.reltio.match.comparator.ExactComparator",
+            "attributes": [
+              {
+                "uri": "configuration/entityTypes/HCP/attributes/dea_number"
+              }
+            ]
+          }
+        ],
+        "rule": {
+          "and": {
+            "exact": [
+              "configuration/entityTypes/HCP/attributes/dea_number"
+            ]
+          }
+        }
+      },
+      {
+        "uri": "configuration/entityTypes/HCP/matchGroups/MatchOnLicenseNumberAndState",
+        "label": "Suspect match on license number within license state scope",
+        "type": "suspect",
+        "scope": "ALL",
+        "useOvOnly": "true",
+        "scoreStandalone": 0,
+        "scoreIncremental": 0,
+        "matchTokenClasses": [
+          {
+            "uri": "configuration/entityTypes/HCP/matchGroups/MatchOnLicenseNumberAndState/matchTokenClasses/LicenseToken",
+            "type": "com.reltio.match.token.ExactMatchToken",
+            "attributes": [
+              {
+                "uri": "configuration/entityTypes/HCP/attributes/license_number"
+              },
+              {
+                "uri": "configuration/entityTypes/HCP/attributes/license_state"
+              }
+            ]
+          }
+        ],
+        "comparatorClasses": [
+          {
+            "uri": "configuration/entityTypes/HCP/matchGroups/MatchOnLicenseNumberAndState/comparatorClasses/LicenseComparator",
+            "type": "com.reltio.match.comparator.ExactComparator",
+            "attributes": [
+              {
+                "uri": "configuration/entityTypes/HCP/attributes/license_number"
+              },
+              {
+                "uri": "configuration/entityTypes/HCP/attributes/license_state"
+              }
+            ]
+          }
+        ],
+        "rule": {
+          "and": {
+            "exact": [
+              "configuration/entityTypes/HCP/attributes/license_number",
+              "configuration/entityTypes/HCP/attributes/license_state"
+            ]
+          }
+        }
+      },
+      {
+        "uri": "configuration/entityTypes/HCP/matchGroups/MatchOnPersonName",
+        "label": "Suspect match on last name phonetic plus first name fuzzy with optional DOB and middle name",
+        "type": "suspect",
+        "scope": "ALL",
+        "useOvOnly": "true",
+        "scoreStandalone": 0,
+        "scoreIncremental": 0,
+        "matchTokenClasses": [
+          {
+            "uri": "configuration/entityTypes/HCP/matchGroups/MatchOnPersonName/matchTokenClasses/LastNameToken",
+            "type": "com.reltio.match.token.DoubleMetaphoneMatchToken",
+            "attributes": [
+              {
+                "uri": "configuration/entityTypes/HCP/attributes/last_name"
+              }
+            ]
+          }
+        ],
+        "comparatorClasses": [
+          {
+            "uri": "configuration/entityTypes/HCP/matchGroups/MatchOnPersonName/comparatorClasses/FirstNameComparator",
+            "type": "com.reltio.match.comparator.DoubleMetaphoneComparator",
+            "attributes": [
+              {
+                "uri": "configuration/entityTypes/HCP/attributes/first_name"
+              }
+            ]
+          }
+        ],
+        "rule": {
+          "and": {
+            "exact": [
+              "configuration/entityTypes/HCP/attributes/last_name"
+            ],
+            "fuzzy": [
+              "configuration/entityTypes/HCP/attributes/first_name"
+            ],
+            "exactOrNull": [
+              "configuration/entityTypes/HCP/attributes/dob",
+              "configuration/entityTypes/HCP/attributes/middle_name"
+            ]
+          }
+        }
+      },
+      {
+        "uri": "configuration/entityTypes/HCP/matchGroups/MatchOnAddress",
+        "label": "Suspect match on street address, city and state",
+        "type": "suspect",
+        "scope": "ALL",
+        "useOvOnly": "true",
+        "scoreStandalone": 0,
+        "scoreIncremental": 0,
+        "matchTokenClasses": [
+          {
+            "uri": "configuration/entityTypes/HCP/matchGroups/MatchOnAddress/matchTokenClasses/AddressToken",
+            "type": "com.reltio.match.token.ExactMatchToken",
+            "attributes": [
+              {
+                "uri": "configuration/entityTypes/HCP/attributes/address1"
+              },
+              {
+                "uri": "configuration/entityTypes/HCP/attributes/city"
+              },
+              {
+                "uri": "configuration/entityTypes/HCP/attributes/state"
+              }
+            ]
+          }
+        ],
+        "comparatorClasses": [
+          {
+            "uri": "configuration/entityTypes/HCP/matchGroups/MatchOnAddress/comparatorClasses/AddressComparator",
+            "type": "com.reltio.match.comparator.ExactComparator",
+            "attributes": [
+              {
+                "uri": "configuration/entityTypes/HCP/attributes/address1"
+              },
+              {
+                "uri": "configuration/entityTypes/HCP/attributes/city"
+              },
+              {
+                "uri": "configuration/entityTypes/HCP/attributes/state"
+              }
+            ]
+          }
+        ],
+        "rule": {
+          "and": {
+            "exact": [
+              "configuration/entityTypes/HCP/attributes/address1",
+              "configuration/entityTypes/HCP/attributes/city",
+              "configuration/entityTypes/HCP/attributes/state"
+            ]
+          }
+        }
+      },
+      {
+        "uri": "configuration/entityTypes/HCP/matchGroups/NegativeRuleOnGender",
+        "label": "Negative Rule - Do not merge if Gender differs",
+        "scope": "ALL",
+        "negativeRule": {
+          "and": {
+            "notExactSame": [
+              "configuration/entityTypes/HCP/attributes/gender"
+            ]
+          }
+        }
+      }
+    ]
+  }
+}

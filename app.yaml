@@ -1,0 +1,16 @@
+# Databricks Apps configuration
+# Deploy from: Databricks workspace → Apps → Create App → Upload this folder
+
+command: ["python", "-m", "streamlit", "run", "app.py", "--server.port", "8080", "--server.address", "0.0.0.0"]
+
+env:
+  # Anthropic API key — set this as a secret in Databricks Apps UI
+  # Apps UI → Your App → Settings → Environment Variables → Add
+  - name: ANTHROPIC_API_KEY
+    valueFrom:
+      secretRef:
+        name: anthropic-api-key   # Secret name you create in Databricks
+
+resources:
+  cpu: "1"
+  memory: "2Gi"
