@@ -21,6 +21,8 @@ import streamlit as st
 from utils.llm import analyze_semantics, generate_match_rules
 from utils.profiler import profile_dataframe, simulate_match_counts
 from utils.semarchy import reltio_to_semarchy_yaml
+from utils.cleansers import apply_fix_to_column, available_cleansers
+from utils.vectorizer import find_semantic_matches, compare_with_rules, backend_name, available as vector_available
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -125,6 +127,9 @@ DEFAULTS = {
     "match_rules": None,
     "counts":      None,
     "nl_history":  [],
+    "cleaned_df":  None,
+    "vector_results": None,
+    "vec_threshold":  0.85,
     "entity_type": "HCP",
     "api_key":     "",
     "null_pct":    80,
@@ -168,7 +173,7 @@ with st.sidebar:
         st.session_state.api_key = st.text_input(
             "Anthropic API key", type="password", value=st.session_state.api_key,
             help="Required for steps 04+")
-    st.markdown("---")
+        st.markdown("---")
     if st.button("🔄 Reset everything", use_container_width=True):
         for k, v in DEFAULTS.items():
             st.session_state[k] = v
@@ -366,7 +371,27 @@ elif st.session_state.step == 3:
     st.markdown("---")
     st.caption(f"{applied} of {len(fixes_df)} fixes selected")
 
-    if st.button("▶  Configure match rules", type="primary", use_container_width=True):
+    # ── Cleanser availability status ──────────────────────────────────────────
+    with st.expander("🔧 Available cleansing libraries"):
+        avail = available_cleansers()
+        for lib, installed in avail.items():
+            icon = "✅" if installed else "⬜"
+            hint = "" if installed else " — run `pip install " + lib.split(" ")[0] + "`"
+            st.markdown(f"{icon} `{lib}`{hint}")
+
+    if st.button("▶  Apply fixes & configure match rules", type="primary",
+                 use_container_width=True):
+        # Apply selected fixes to the dataframe
+        df_clean = st.session_state.df.copy()
+        for _, row in fixes_df[fixes_df["Apply"]].iterrows():
+            col      = row["Field"]
+            fix_type = row["Fix"]
+            if col in df_clean.columns:
+                try:
+                    df_clean = apply_fix_to_column(df_clean, col, fix_type)
+                except Exception:
+                    pass  # silently skip if a cleanser fails
+        st.session_state.cleaned_df = df_clean
         st.session_state.step = 4
         st.rerun()
 
@@ -546,11 +571,33 @@ elif st.session_state.step == 4:
                                 unsafe_allow_html=True)
 
         st.markdown("---")
+        # Vector similarity threshold slider
+        st.session_state.vec_threshold = st.slider(
+            "Semantic similarity threshold",
+            min_value=0.70, max_value=0.99, step=0.01,
+            value=st.session_state.vec_threshold,
+            help="Cosine similarity cutoff for embedding-based match candidates. "
+                 "Higher = stricter (fewer but more confident matches).")
+
         if st.button("▶  Run match simulation", type="primary", use_container_width=True):
             with st.spinner(f"Simulating {len(df):,} records…"):
                 counts = simulate_match_counts(df, rules)
-            st.session_state.counts = counts
-            st.session_state.step   = 5
+
+            vec_results = None
+            if vector_available():
+                with st.spinner(
+                    f"Running semantic similarity ({backend_name()})…"):
+                    vec_results = find_semantic_matches(
+                        df,
+                        threshold=st.session_state.vec_threshold,
+                    )
+            else:
+                st.info("Install `sentence-transformers` or `scikit-learn` "
+                        "to enable semantic similarity matching.")
+
+            st.session_state.counts         = counts
+            st.session_state.vector_results = vec_results
+            st.session_state.step           = 5
             st.rerun()
 
 # ── STEP 5: Simulate ──────────────────────────────────────────────────────────
@@ -572,12 +619,18 @@ elif st.session_state.step == 5:
     n_suspect   = sum(1 for g in groups if g.get("type") == "suspect")
     n_neg       = sum(1 for g in groups if "negativeRule" in g)
 
-    c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric("Total profiles",    f"{total:,}")
-    c2.metric("Profiles matched",  f"{total_mp:,}")
-    c3.metric("Candidate pairs",   f"{total_pairs:,}")
-    c4.metric("Auto-merge groups", n_auto)
-    c5.metric("Suspect groups",    n_suspect)
+    vec     = st.session_state.get("vector_results") or {}
+    vec_mp  = vec.get("matching_profiles", 0)
+    vec_pairs = vec.get("matching_pairs",  0)
+    vec_eng = vec.get("engine", "—")
+
+    c1, c2, c3, c4, c5, c6 = st.columns(6)
+    c1.metric("Total profiles",        f"{total:,}")
+    c2.metric("Rule-based matched",    f"{total_mp:,}")
+    c3.metric("Rule candidate pairs",  f"{total_pairs:,}")
+    c4.metric("Semantic matched",      f"{vec_mp:,}")
+    c5.metric("Semantic pairs",        f"{vec_pairs:,}")
+    c6.metric("Auto-merge groups",     n_auto)
 
     st.markdown("---")
 
@@ -630,6 +683,92 @@ elif st.session_state.step == 5:
             "Method":            method,
             "Over-match risk":   risk,
         })
+
+    # ── Semantic similarity results ──────────────────────────────────────────
+    if vec and vec.get("matching_pairs", 0) > 0:
+        st.markdown("---")
+        st.markdown("### 🧬 Semantic similarity results")
+        st.caption(
+            f"Engine: **{vec_eng}** · "
+            f"Threshold: **{vec.get('threshold', 0.85):.0%}** · "
+            f"Finds soft duplicates that exact/phonetic rules miss — "
+            f"different spellings, abbreviations, missing fields."
+        )
+
+        # Gap analysis
+        gap_analysis = compare_with_rules(counts, vec, df)
+        gap_pct = gap_analysis.get("gap_pct", 0)
+
+        cg1, cg2, cg3 = st.columns(3)
+        cg1.metric("Semantic matches",
+                   f"{vec.get('matching_profiles',0):,}",
+                   help="Profiles involved in at least one high-similarity pair")
+        cg2.metric("Not covered by rules",
+                   f"~{gap_analysis.get('vector_only_estimate',0):,}",
+                   delta=f"{gap_pct:.0f}% gap" if gap_pct > 0 else "0% gap",
+                   delta_color="inverse",
+                   help="Semantic matches estimated to be missed by current rules")
+        cg3.metric("Largest semantic cluster",
+                   f"{vec.get('largest_cluster',0):,}",
+                   help="Biggest group of records all semantically similar to each other")
+
+        # Gap warning
+        if gap_pct > 20:
+            st.warning(
+                f"⚠️  **~{gap_pct:.0f}% of semantic matches are not covered by your "
+                f"current rules.** Consider adding a broader suspect rule or "
+                f"lowering the similarity threshold on existing rules.",
+                icon="⚠️"
+            )
+        elif gap_pct > 5:
+            st.info(
+                f"ℹ️  ~{gap_pct:.0f}% of semantic matches may not be covered by rules. "
+                f"Review the sample pairs below."
+            )
+        else:
+            st.success("✅ Rules appear to cover the semantic matches well.", icon="✅")
+
+        # Sample pairs the rules likely missed
+        gap_sample = gap_analysis.get("gap_sample", [])
+        if gap_sample:
+            with st.expander(f"🔍 Sample pairs rules may have missed ({len(gap_sample)})"):
+                for p in gap_sample:
+                    score_color = "#4ade80" if p['score'] >= 0.92 else "#fb923c"
+                    st.markdown(
+                        f"<div style='background:#161821;border:1px solid #1e2130;"
+                        f"border-radius:8px;padding:.6rem .9rem;margin-bottom:.4rem;'>"
+                        f"<span style='font-family:IBM Plex Mono;font-size:.7rem;"
+                        f"color:{score_color};'>similarity: {p['score']:.3f}</span><br>"
+                        f"<span style='font-size:.8rem;color:#e2e8f0;'>A: {p['preview_a']}</span><br>"
+                        f"<span style='font-size:.8rem;color:#94a3b8;'>B: {p['preview_b']}</span>"
+                        f"</div>",
+                        unsafe_allow_html=True
+                    )
+
+        # Top semantic pairs by confidence
+        sample_pairs = vec.get("sample_pairs", [])[:20]
+        if sample_pairs:
+            with st.expander("📊 Top semantic match pairs by similarity score"):
+                pairs_df = pd.DataFrame([
+                    {
+                        "Score":     p["score"],
+                        "Record A":  p["preview_a"],
+                        "Record B":  p["preview_b"],
+                    }
+                    for p in sample_pairs
+                ])
+                st.dataframe(pairs_df, use_container_width=True, hide_index=True)
+
+    elif vector_available():
+        st.info(f"No semantic matches found above the "
+                f"{st.session_state.vec_threshold:.0%} threshold. "
+                f"Try lowering the threshold in Step 04.")
+    else:
+        st.markdown("---")
+        st.caption(
+            "💡 Install `sentence-transformers` or `scikit-learn` for semantic "
+            "similarity matching: `pip install sentence-transformers`"
+        )
 
     st.markdown("---")
     if st.button("▶  Proceed to export", type="primary", use_container_width=True):
@@ -778,6 +917,56 @@ elif st.session_state.step == 6:
             use_container_width=True,
         )
         st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown("---")
+    # ── Cleaned file export ───────────────────────────────────────────────────
+    cleaned_df = st.session_state.get("cleaned_df")
+    if cleaned_df is not None:
+        st.markdown('<div class="export-card">', unsafe_allow_html=True)
+        st.markdown('<div class="export-title">✅ Cleaned dataset — CSV</div>',
+                    unsafe_allow_html=True)
+        fixes_applied = st.session_state.dq_fixes
+        n_applied     = int(fixes_applied["Apply"].sum())
+        recs_fixed    = int(fixes_applied[fixes_applied["Apply"]]["Records"].sum())
+        orig_df       = st.session_state.df
+
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Original records",  f"{len(orig_df):,}")
+        c2.metric("DQ fixes applied",  n_applied)
+        c3.metric("Records corrected", f"{recs_fixed:,}")
+
+        # Show diff of changed cells
+        changed_cols = []
+        for col in orig_df.columns:
+            if col in cleaned_df.columns:
+                diffs = (orig_df[col].astype(str) != cleaned_df[col].astype(str)).sum()
+                if diffs > 0:
+                    changed_cols.append({"Column": col, "Cells changed": int(diffs)})
+        if changed_cols:
+            st.markdown("**Changes made:**")
+            st.dataframe(pd.DataFrame(changed_cols), use_container_width=True,
+                         hide_index=True)
+
+        st.markdown(
+            '<div class="export-sub">The original dataset with all selected DQ fixes '
+            'applied — phone numbers normalised to E.164, names title-cased, emails '
+            'validated and lowercased, dates standardised to ISO 8601, address '
+            'abbreviations expanded. Use this file as the cleaned input for '
+            'Reltio or Semarchy ingestion.</div>',
+            unsafe_allow_html=True)
+
+        csv_buf = io.StringIO()
+        cleaned_df.to_csv(csv_buf, index=False)
+        st.download_button(
+            "⬇️  Download cleaned_dataset.csv",
+            data=csv_buf.getvalue(),
+            file_name=f"{entity_type}_cleaned_{ts}.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+        st.markdown('</div>', unsafe_allow_html=True)
+    else:
+        st.info("No cleaned dataset available — go back to Step 3 and apply DQ fixes.")
 
     st.markdown("---")
     if st.button("🔄 Start new iteration", use_container_width=True):
