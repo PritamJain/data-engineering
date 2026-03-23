@@ -97,17 +97,17 @@ def _df_hash(df: pd.DataFrame) -> str:
 def _embed_st(texts: list[str]) -> np.ndarray:
     model = SentenceTransformer(_MODEL_NAME)
     return model.encode(
-        texts, batch_size=64, show_progress_bar=False,
+        texts, batch_size=32, show_progress_bar=False,
         normalize_embeddings=True
     )
 
 
 def _embed_tfidf(texts: list[str]) -> np.ndarray:
-    vec    = TfidfVectorizer(max_features=512, sublinear_tf=True)
+    vec    = TfidfVectorizer(max_features=256, sublinear_tf=True)
     matrix = vec.fit_transform(texts).toarray()
     norms  = np.linalg.norm(matrix, axis=1, keepdims=True)
     norms[norms == 0] = 1
-    return matrix / norms
+    return (matrix / norms).astype(np.float32)  # float32 uses half the RAM of float64
 
 
 def embed_records(df: pd.DataFrame,
@@ -117,8 +117,21 @@ def embed_records(df: pd.DataFrame,
     key = _df_hash(df) + str(cols)
     if key in _EMBED_CACHE:
         return _EMBED_CACHE[key]
-    texts      = _records_to_texts(df, cols)
-    embeddings = _embed_st(texts) if _HAS_ST else _embed_tfidf(texts)
+    texts = _records_to_texts(df, cols)
+    try:
+        embeddings = _embed_st(texts) if _HAS_ST else _embed_tfidf(texts)
+    except Exception as e:
+        logging.warning(f"Embedding failed ({type(e).__name__}): {e}. "
+                        f"Falling back to TF-IDF.")
+        if _HAS_SKLEARN:
+            try:
+                embeddings = _embed_tfidf(texts)
+            except Exception:
+                return None
+        else:
+            return None
+    # Use float32 to halve memory usage
+    embeddings = embeddings.astype(np.float32)
     _EMBED_CACHE[key] = embeddings
     return embeddings
 
@@ -142,9 +155,12 @@ def find_candidate_pairs(
     pairs: list[dict] = []
 
     if n <= _MAX_PAIRWISE:
-        sim = embeddings @ embeddings.T
+        # Compute pairwise cosine in float32 — halves RAM vs float64
+        emb32 = embeddings.astype(np.float32)
+        sim   = emb32 @ emb32.T
+        # Threshold mask without materialising full bool matrix where possible
         rows_i, cols_i = np.where(
-            (sim >= threshold) & (np.triu(np.ones((n, n)), k=1) > 0)
+            (sim >= threshold) & (np.triu(np.ones((n, n), dtype=np.float32), k=1) > 0)
         )
         for a, b in zip(rows_i.tolist(), cols_i.tolist()):
             pairs.append({
