@@ -18,9 +18,10 @@ import os
 import re
 
 import anthropic
+from utils.entity_config import get_inference_guide, get_negative_rule_guidance
 
 _CACHE_FILE    = ".match_rule_cache.json"
-PROMPT_VERSION = "v3.4"
+PROMPT_VERSION = "v3.5"
 
 
 # ── Cache helpers ─────────────────────────────────────────────────────────────
@@ -181,13 +182,9 @@ CRITICAL OUTPUT RULES:
   4. Do not add trailing commas.
 
 IMPORTANT — read actual sample_values carefully. Do NOT rely on column names alone.
-Many columns are misnamed or abbreviated. Use this guide:
-  • Column containing 10-digit numbers → likely NPI (strong_identifier)
-  • Column containing "letter(s) + 7 digits" patterns → likely DEA# (scoped_identifier)
-  • Column containing alphanumeric codes alongside a State column → likely state license (scoped_identifier)
-  • Column with street-like values (numbers + street names) → address_component
-  • Column with short codes like "208D00000X" → taxonomy_code
-  • Column with values like "MD", "DO", "RN", "PhD" → credential
+Many columns are misnamed or abbreviated.
+
+{entity_inference_guide}
 
 For EVERY column output a JSON entry with these exact fields:
   "semantic_type"       — one of the types listed below
@@ -264,7 +261,7 @@ def analyze_semantics(profiling_summary: dict, entity_type: str, api_key: str) -
         model      = "claude-sonnet-4-6",
         max_tokens = 8096,        # ← was 4000; raised to prevent truncation
         temperature= 0,
-        system     = _SEMANTIC_SYSTEM,
+        system     = _build_semantic_system(entity_type),
         messages   = [{"role": "user", "content": _SEMANTIC_USER.format(
             entity_type   = entity_type,
             n_cols        = n_cols,
@@ -408,18 +405,7 @@ DECISION RULES
      (b) The field has stable, standardised values (not free text, not multi-system codes), AND
      (c) A difference in that field definitively means two records are different people.
 
-     APPROVED fields for negativeRule (if eligibility criteria met):
-       ✅ Gender       — only if consistently coded (M/F/Male/Female), not free text
-       ✅ HCPType      — only if a controlled vocabulary list is used
-
-     BANNED fields for negativeRule — NEVER use these as negative rule fields:
-       ❌ DOB / DateOfBirth  — too many format variations across systems (MM/DD vs DD/MM,
-                               missing vs null vs "unknown"). Blocks legitimate merges constantly.
-       ❌ Specialty / TaxonomyCode — same HCP has different codes in different systems
-                                      (NUCC vs internal codes vs free-text descriptions).
-       ❌ Email / Phone       — change frequently, shared across staff.
-       ❌ Any address field   — highly variable across sources.
-       ❌ Any field with p_missing > 0.3 — too many nulls to be a reliable blocker.
+     {entity_negative_rule_guidance}
 
      REQUIRED negativeRule structure:
        "uri":   "configuration/entityTypes/{EntityType}/matchGroups/NegativeRuleOn{FieldName}"
@@ -466,6 +452,12 @@ Generate the complete matchGroups JSON now.
 """.strip()
 
 
+def _build_rule_system(entity_type: str) -> str:
+    """Build rule system prompt with entity-specific negative rule guidance."""
+    guidance = get_negative_rule_guidance(entity_type)
+    return _RULE_SYSTEM.replace("{entity_negative_rule_guidance}", guidance)
+
+
 def generate_match_rules(
     profiling_summary: dict,
     semantic_analysis: dict,
@@ -487,7 +479,7 @@ def generate_match_rules(
         model      = "claude-sonnet-4-6",
         max_tokens = 8096,
         temperature= 0,
-        system     = _RULE_SYSTEM,
+        system     = _build_rule_system(entity_type),
         messages   = [{"role": "user", "content": _RULE_USER.format(
             entity_type   = entity_type,
             semantic_json = json.dumps(semantic_analysis, indent=2),
