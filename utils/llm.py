@@ -244,6 +244,16 @@ Output the complete semantic analysis JSON for all {n_cols} columns now.
 """.strip()
 
 
+
+def _build_semantic_system(entity_type: str) -> str:
+    """Build the semantic system prompt with entity-specific field recognition guide."""
+    try:
+        guide = get_inference_guide(entity_type)
+    except Exception:
+        guide = ""
+    return _SEMANTIC_SYSTEM.replace("{entity_inference_guide}", guide)
+
+
 def analyze_semantics(profiling_summary: dict, entity_type: str, api_key: str) -> dict:
     """
     Pass 1: Classify every column by reading 30 real sample values.
