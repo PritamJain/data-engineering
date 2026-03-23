@@ -656,15 +656,28 @@ elif st.session_state.step == 4:
                 counts = simulate_match_counts(df, rules)
             vec_results = None
             if vector_available():
-                with st.spinner(
-                    f"Running Stage 1: embedding retrieval ({backend_name()})…"):
-                    # Pass API key so Stage 2 Claude reranking runs automatically
-                    vec_results = find_semantic_matches(
-                        df,
-                        threshold      = st.session_state.vec_threshold,
-                        api_key        = api_key,
-                        max_claude_pairs = st.session_state.get('max_claude_pairs', 200),
-                    )
+                try:
+                    # Cap rows sent to vectorizer — Streamlit Cloud has 1 GB RAM limit.
+                    # For datasets > 10k rows sample a representative subset.
+                    MAX_VEC_ROWS = 10_000
+                    df_vec = df if len(df) <= MAX_VEC_ROWS else df.sample(
+                        MAX_VEC_ROWS, random_state=42).reset_index(drop=True)
+                    vec_label = (f"{MAX_VEC_ROWS:,}-row sample"
+                                 if len(df) > MAX_VEC_ROWS else f"{len(df):,} rows")
+
+                    with st.spinner(
+                        f"Running Stage 1: embedding retrieval on {vec_label} ({backend_name()})…"):
+                        vec_results = find_semantic_matches(
+                            df_vec,
+                            threshold        = st.session_state.vec_threshold,
+                            api_key          = api_key,
+                            max_claude_pairs = st.session_state.get("max_claude_pairs", 200),
+                        )
+                except MemoryError:
+                    st.warning("⚠️  Not enough memory for semantic matching on this dataset size. "
+                               "Rule-based results are still complete.", icon="⚠️")
+                except Exception as vec_err:
+                    st.warning(f"⚠️  Semantic matching skipped: {vec_err}", icon="⚠️")
             else:
                 st.info("Install `sentence-transformers` or `scikit-learn` "
                         "to enable semantic similarity matching.")
