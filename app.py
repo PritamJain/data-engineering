@@ -23,6 +23,7 @@ from utils.profiler import profile_dataframe, simulate_match_counts
 from utils.semarchy import reltio_to_semarchy_yaml
 from utils.cleansers import apply_fix_to_column, available_cleansers
 from utils.vectorizer import find_semantic_matches, compare_with_rules, backend_name, available as vector_available
+from utils.entity_config import detect_entity_class, get_entity_label, get_dq_field_hints
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -217,120 +218,110 @@ def _quick_profile(df: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def _suggest_dq(df: pd.DataFrame) -> pd.DataFrame:
+def _suggest_dq(df: pd.DataFrame, entity_type: str = "") -> pd.DataFrame:
     """
-    Detect DQ issues and suggest fixes including 7 domain-specific cleansers:
-    fax E.164, license prefix, state code, first-name nicknames,
-    specialty synonyms, practice-name acronyms, gender normalisation.
+    Detect DQ issues using entity-type-aware column detection.
+    HCP data detects NPI/DEA/specialty; Customer data detects loyalty IDs/segments;
+    Account data detects EIN/DUNS/industry codes, etc.
     """
-    fixes = []
+    hints  = get_dq_field_hints(entity_type)
+    fixes  = []
+    seen   = set()
+
+    def add(col, fix, records):
+        key = (col, fix)
+        if key not in seen:
+            seen.add(key)
+            fixes.append({"Field": col, "Fix": fix, "Records": records, "Apply": False})
+
     for col in df.columns:
         cl = col.lower()
         s  = df[col].dropna().astype(str) if df[col].dtype == object else None
+        n  = len(s) if s is not None else 0
 
         # Phone & Fax — E.164
-        if any(x in cl for x in ("phone", "mobile", "tel", "fax")):
-            fixes.append({"Field": col, "Fix": "Normalise to E.164 format",
-                          "Records": len(s) if s is not None else 0, "Apply": False})
+        if any(x in cl for x in hints.get("phone", []) + hints.get("fax", [])):
+            add(col, "Normalise to E.164 format", n)
 
         # First name — casing + nickname resolver
-        if any(x in cl for x in ("first", "given")):
+        if any(x in cl for x in hints.get("first", [])):
             if s is not None:
                 mixed = s[s.str.lower().ne(s) & s.str.upper().ne(s)]
                 if len(mixed):
-                    fixes.append({"Field": col, "Fix": "Standardise casing (Title Case)",
-                                  "Records": len(mixed), "Apply": False})
-                fixes.append({"Field": col,
-                              "Fix": "Resolve nicknames to canonical first name",
-                              "Records": len(s), "Apply": False})
+                    add(col, "Standardise casing (Title Case)", len(mixed))
+                add(col, "Resolve nicknames to canonical first name", n)
 
-        # Last / middle name — casing (includes O'Brien restoration)
-        if any(x in cl for x in ("last", "middle", "surname")):
+        # Last / middle name
+        if any(x in cl for x in hints.get("last", []) + hints.get("middle", [])):
             if s is not None:
                 mixed = s[s.str.lower().ne(s) & s.str.upper().ne(s)]
                 if len(mixed):
-                    fixes.append({"Field": col, "Fix": "Standardise casing (Title Case)",
-                                  "Records": len(mixed), "Apply": False})
+                    add(col, "Standardise casing (Title Case)", len(mixed))
 
-        # Practice / org name — acronym-safe title case
-        if any(x in cl for x in ("practice", "org", "facility", "hospital")):
+        # Org / practice / company name
+        if any(x in cl for x in hints.get("org_name", [])):
             if s is not None and "name" in cl:
-                fixes.append({"Field": col, "Fix": "Standardise casing (Title Case)",
-                              "Records": len(s), "Apply": False})
+                add(col, "Standardise casing (Title Case)", n)
 
         # Email
-        if any(x in cl for x in ("email", "mail")):
+        if any(x in cl for x in hints.get("email", [])):
             if s is not None:
                 bad = s[~s.str.contains(r"^[^@]+@[^@]+\.[^@]+$", na=False)]
                 if len(bad):
-                    fixes.append({"Field": col, "Fix": "Flag invalid email addresses",
-                                  "Records": len(bad), "Apply": False})
+                    add(col, "Flag invalid email addresses", len(bad))
 
-        # Dates — detect non-ISO format
-        if any(x in cl for x in ("dob", "birth", "date", "enumeration")):
+        # Dates
+        if any(x in cl for x in hints.get("date", [])):
             if s is not None:
                 non_iso = s[~s.str.match(r"^\d{4}-\d{2}-\d{2}$", na=False)]
                 if len(non_iso):
-                    fixes.append({"Field": col,
-                                  "Fix": "Standardise to ISO 8601 (YYYY-MM-DD)",
-                                  "Records": len(non_iso), "Apply": False})
+                    add(col, "Standardise to ISO 8601 (YYYY-MM-DD)", len(non_iso))
 
         # Address abbreviations
-        if any(x in cl for x in ("address", "street", "addr")):
+        if any(x in cl for x in hints.get("address", [])):
             if s is not None:
-                fixes.append({"Field": col,
-                              "Fix": "Expand abbreviations (St→Street, Ave→Avenue)",
-                              "Records": int(len(s) * 0.15), "Apply": False})
+                add(col, "Expand abbreviations (St→Street, Ave→Avenue)",
+                    int(n * 0.15))
 
-        # State / region — full name → 2-letter code
-        if cl in ("state", "license_state", "lic_state", "province"):
+        # State — full name → 2-letter code
+        if any(x in cl for x in hints.get("state", [])):
             if s is not None:
                 full_names = s[s.str.len() > 2]
                 if len(full_names):
-                    fixes.append({"Field": col,
-                                  "Fix": "Normalise state to 2-letter ISO code",
-                                  "Records": len(full_names), "Apply": False})
+                    add(col, "Normalise state to 2-letter ISO code", len(full_names))
 
-        # License number — restore missing state prefix
-        if any(x in cl for x in ("license", "licence", "lic_num", "licnum")):
+        # License number — restore state prefix (HCP + Patient)
+        if any(x in cl for x in hints.get("license", [])):
             if s is not None:
                 numeric_only = s[s.str.match(r"^\d+$", na=False)]
                 if len(numeric_only):
-                    fixes.append({"Field": col,
-                                  "Fix": "Restore state prefix to license number (e.g. 12345 → MA-12345)",
-                                  "Records": len(numeric_only), "Apply": False})
+                    add(col, "Restore state prefix to license number (e.g. 12345 → MA-12345)",
+                        len(numeric_only))
 
-        # Specialty — synonyms and abbreviations
-        if any(x in cl for x in ("specialty", "speciality", "spec")):
+        # Specialty synonyms (HCP)
+        if any(x in cl for x in hints.get("specialty", [])):
             if s is not None:
-                fixes.append({"Field": col,
-                              "Fix": "Normalise specialty synonyms and abbreviations",
-                              "Records": len(s), "Apply": False})
+                add(col, "Normalise specialty synonyms and abbreviations", n)
 
-        # Gender — unify to single character
-        if cl in ("gender", "sex"):
+        # Gender
+        if any(x in cl for x in hints.get("gender", [])):
             if s is not None:
-                non_code = s[s.str.lower().isin([
-                    "male", "female", "man", "woman",
-                    "non-binary", "nonbinary", "unknown"])]
+                non_code = s[s.str.lower().isin(["male","female","man","woman",
+                                                  "non-binary","nonbinary","unknown"])]
                 if len(non_code):
-                    fixes.append({"Field": col,
-                                  "Fix": "Normalise gender to single character (M/F/O/U)",
-                                  "Records": len(non_code), "Apply": False})
+                    add(col, "Normalise gender to single character (M/F/O/U)",
+                        len(non_code))
+
+        # Industry code / segment normalisation (Account)
+        if any(x in cl for x in hints.get("industry", [])):
+            if s is not None:
+                add(col, "Standardise casing (Title Case)", n)
 
     if not fixes:
         fixes.append({"Field": "—", "Fix": "No critical issues detected",
                       "Records": 0, "Apply": False})
 
-    # Deduplicate (same field + fix)
-    seen, deduped = set(), []
-    for f in fixes:
-        key = (f["Field"], f["Fix"])
-        if key not in seen:
-            seen.add(key)
-            deduped.append(f)
-
-    return pd.DataFrame(deduped)
+    return pd.DataFrame(fixes)
 
 
 # ── STEP 1: Ingest ────────────────────────────────────────────────────────────
@@ -368,7 +359,7 @@ if st.session_state.step == 1:
             with st.spinner("Profiling schema and statistics…"):
                 df = st.session_state.df
                 st.session_state.raw_profile  = _quick_profile(df)
-                st.session_state.dq_fixes     = _suggest_dq(df)
+                st.session_state.dq_fixes     = _suggest_dq(df, st.session_state.entity_type)
                 st.session_state.step         = 2
             st.rerun()
     else:
@@ -381,8 +372,10 @@ elif st.session_state.step == 2:
 
     st.markdown('<div class="step-badge">STEP 02</div>', unsafe_allow_html=True)
     st.markdown('<div class="section-title">Profiling report</div>', unsafe_allow_html=True)
+    entity_label = get_entity_label(st.session_state.entity_type)
     st.markdown(f'<div class="section-sub">{len(df):,} records · '
-                f'{len(df.columns)} columns analysed</div>', unsafe_allow_html=True)
+                f'{len(df.columns)} columns · entity: {entity_label}</div>',
+                unsafe_allow_html=True)
 
     issues_n     = int(profile["_has_issues"].sum())
     completeness = round((1 - df.isna().mean().mean()) * 100, 1)
@@ -641,20 +634,37 @@ elif st.session_state.step == 4:
                                 unsafe_allow_html=True)
 
         st.markdown("---")
-        st.session_state.vec_threshold = st.slider(
-            "Semantic similarity threshold",
-            min_value=0.70, max_value=0.99, step=0.01,
-            value=st.session_state.vec_threshold,
-            help="Cosine similarity cutoff. Higher = stricter matches.")
+        sv1, sv2 = st.columns(2)
+        with sv1:
+            st.session_state.vec_threshold = st.slider(
+                "Embedding similarity threshold",
+                min_value=0.70, max_value=0.99, step=0.01,
+                value=st.session_state.vec_threshold,
+                help="Stage 1: cosine similarity cutoff for candidate retrieval.")
+        with sv2:
+            if "max_claude_pairs" not in st.session_state:
+                st.session_state.max_claude_pairs = 200
+            st.session_state.max_claude_pairs = st.slider(
+                "Max Claude reranking pairs",
+                min_value=50, max_value=500, step=50,
+                value=st.session_state.max_claude_pairs,
+                help="Stage 2: how many top candidates Claude adjudicates. "
+                     "Each pair = ~1 API call. 200 pairs ≈ $0.04 at Sonnet pricing.")
 
         if st.button("▶  Run match simulation", type="primary", use_container_width=True):
             with st.spinner(f"Simulating {len(df):,} records…"):
                 counts = simulate_match_counts(df, rules)
             vec_results = None
             if vector_available():
-                with st.spinner(f"Running semantic similarity ({backend_name()})…"):
+                with st.spinner(
+                    f"Running Stage 1: embedding retrieval ({backend_name()})…"):
+                    # Pass API key so Stage 2 Claude reranking runs automatically
                     vec_results = find_semantic_matches(
-                        df, threshold=st.session_state.vec_threshold)
+                        df,
+                        threshold      = st.session_state.vec_threshold,
+                        api_key        = api_key,
+                        max_claude_pairs = st.session_state.get('max_claude_pairs', 200),
+                    )
             else:
                 st.info("Install `sentence-transformers` or `scikit-learn` "
                         "to enable semantic similarity matching.")
@@ -693,6 +703,20 @@ elif st.session_state.step == 5:
     c4.metric("Semantic matched",     f"{vec_mp:,}")
     c5.metric("Semantic pairs",       f"{vec_pairs:,}")
     c6.metric("Auto-merge groups",    n_auto)
+
+    if vec and vec.get("claude_reranked", 0) > 0:
+        n_match   = vec.get("claude_matches",   0)
+        n_suspect = vec.get("claude_suspects",  0)
+        n_nomatch = vec.get("claude_no_match",  0)
+        n_total_c = vec.get("claude_reranked",  0)
+        n_cands   = vec.get("total_candidates", 0)
+        ca, cb, cc, cd = st.columns(4)
+        ca.metric("Claude MATCH",    n_match,    help="Auto-merge confidence")
+        cb.metric("Claude SUSPECT",  n_suspect,  help="Needs data steward review")
+        cc.metric("Claude NO_MATCH", n_nomatch,  help="Different people, dismissed")
+        cd.metric("Stage 1 candidates", n_cands, help="Found by embedding before Claude")
+        st.caption(f"Stage 1 (embedding) found {n_cands} candidates"
+                   f" → Stage 2 (Claude) adjudicated top {n_total_c}")
 
     st.markdown("---")
 
@@ -779,11 +803,17 @@ elif st.session_state.step == 5:
 
         sample_pairs = vec.get("sample_pairs", [])[:20]
         if sample_pairs:
-            with st.expander("📊 Top semantic match pairs by similarity score"):
-                st.dataframe(pd.DataFrame([{
-                    "Score": p["score"], "Record A": p["preview_a"],
-                    "Record B": p["preview_b"]} for p in sample_pairs]),
-                    use_container_width=True, hide_index=True)
+            with st.expander("📊 Top semantic match pairs (with Claude verdicts)"):
+                rows_p = [{
+                    "Embed score": p.get("embed_score", p.get("score", 0)),
+                    "Claude":      p.get("claude_verdict", "—"),
+                    "Confidence":  f"{p.get('claude_confidence', 0):.0%}",
+                    "Record A":    p["preview_a"],
+                    "Record B":    p["preview_b"],
+                    "Reasoning":   p.get("claude_reasoning", ""),
+                } for p in sample_pairs]
+                st.dataframe(pd.DataFrame(rows_p),
+                             use_container_width=True, hide_index=True)
     elif vector_available():
         st.info(f"No semantic matches found above "
                 f"{st.session_state.vec_threshold:.0%} threshold.")
