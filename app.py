@@ -196,7 +196,6 @@ _STYPE_CSS = {
 }
 
 def _quick_profile(df: pd.DataFrame) -> pd.DataFrame:
-    """Lightweight profile for the UI table in step 2."""
     rows = []
     for col in df.columns:
         null_pct  = round(df[col].isna().mean() * 100, 1)
@@ -217,36 +216,122 @@ def _quick_profile(df: pd.DataFrame) -> pd.DataFrame:
         })
     return pd.DataFrame(rows)
 
+
 def _suggest_dq(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Detect DQ issues and suggest fixes including 7 domain-specific cleansers:
+    fax E.164, license prefix, state code, first-name nicknames,
+    specialty synonyms, practice-name acronyms, gender normalisation.
+    """
     fixes = []
     for col in df.columns:
         cl = col.lower()
-        if df[col].dtype != object:
-            continue
-        s = df[col].dropna().astype(str)
-        if any(x in cl for x in ("phone", "mobile", "fax", "tel")):
+        s  = df[col].dropna().astype(str) if df[col].dtype == object else None
+
+        # Phone & Fax — E.164
+        if any(x in cl for x in ("phone", "mobile", "tel", "fax")):
             fixes.append({"Field": col, "Fix": "Normalise to E.164 format",
-                          "Records": len(s), "Apply": False})
-        if any(x in cl for x in ("first", "last", "name", "middle")):
-            mixed = s[s.str.lower().ne(s) & s.str.upper().ne(s)]
-            if len(mixed):
+                          "Records": len(s) if s is not None else 0, "Apply": False})
+
+        # First name — casing + nickname resolver
+        if any(x in cl for x in ("first", "given")):
+            if s is not None:
+                mixed = s[s.str.lower().ne(s) & s.str.upper().ne(s)]
+                if len(mixed):
+                    fixes.append({"Field": col, "Fix": "Standardise casing (Title Case)",
+                                  "Records": len(mixed), "Apply": False})
+                fixes.append({"Field": col,
+                              "Fix": "Resolve nicknames to canonical first name",
+                              "Records": len(s), "Apply": False})
+
+        # Last / middle name — casing (includes O'Brien restoration)
+        if any(x in cl for x in ("last", "middle", "surname")):
+            if s is not None:
+                mixed = s[s.str.lower().ne(s) & s.str.upper().ne(s)]
+                if len(mixed):
+                    fixes.append({"Field": col, "Fix": "Standardise casing (Title Case)",
+                                  "Records": len(mixed), "Apply": False})
+
+        # Practice / org name — acronym-safe title case
+        if any(x in cl for x in ("practice", "org", "facility", "hospital")):
+            if s is not None and "name" in cl:
                 fixes.append({"Field": col, "Fix": "Standardise casing (Title Case)",
-                              "Records": len(mixed), "Apply": False})
+                              "Records": len(s), "Apply": False})
+
+        # Email
         if any(x in cl for x in ("email", "mail")):
-            bad = s[~s.str.contains(r"^[^@]+@[^@]+\.[^@]+$", na=False)]
-            if len(bad):
-                fixes.append({"Field": col, "Fix": "Flag invalid email addresses",
-                              "Records": len(bad), "Apply": False})
-        if any(x in cl for x in ("dob", "birth", "date")):
-            fixes.append({"Field": col, "Fix": "Standardise to ISO 8601 (YYYY-MM-DD)",
-                          "Records": len(s), "Apply": False})
+            if s is not None:
+                bad = s[~s.str.contains(r"^[^@]+@[^@]+\.[^@]+$", na=False)]
+                if len(bad):
+                    fixes.append({"Field": col, "Fix": "Flag invalid email addresses",
+                                  "Records": len(bad), "Apply": False})
+
+        # Dates — detect non-ISO format
+        if any(x in cl for x in ("dob", "birth", "date", "enumeration")):
+            if s is not None:
+                non_iso = s[~s.str.match(r"^\d{4}-\d{2}-\d{2}$", na=False)]
+                if len(non_iso):
+                    fixes.append({"Field": col,
+                                  "Fix": "Standardise to ISO 8601 (YYYY-MM-DD)",
+                                  "Records": len(non_iso), "Apply": False})
+
+        # Address abbreviations
         if any(x in cl for x in ("address", "street", "addr")):
-            fixes.append({"Field": col, "Fix": "Expand abbreviations (St→Street, Ave→Avenue)",
-                          "Records": int(len(s) * 0.15), "Apply": False})
+            if s is not None:
+                fixes.append({"Field": col,
+                              "Fix": "Expand abbreviations (St→Street, Ave→Avenue)",
+                              "Records": int(len(s) * 0.15), "Apply": False})
+
+        # State / region — full name → 2-letter code
+        if cl in ("state", "license_state", "lic_state", "province"):
+            if s is not None:
+                full_names = s[s.str.len() > 2]
+                if len(full_names):
+                    fixes.append({"Field": col,
+                                  "Fix": "Normalise state to 2-letter ISO code",
+                                  "Records": len(full_names), "Apply": False})
+
+        # License number — restore missing state prefix
+        if any(x in cl for x in ("license", "licence", "lic_num", "licnum")):
+            if s is not None:
+                numeric_only = s[s.str.match(r"^\d+$", na=False)]
+                if len(numeric_only):
+                    fixes.append({"Field": col,
+                                  "Fix": "Restore state prefix to license number (e.g. 12345 → MA-12345)",
+                                  "Records": len(numeric_only), "Apply": False})
+
+        # Specialty — synonyms and abbreviations
+        if any(x in cl for x in ("specialty", "speciality", "spec")):
+            if s is not None:
+                fixes.append({"Field": col,
+                              "Fix": "Normalise specialty synonyms and abbreviations",
+                              "Records": len(s), "Apply": False})
+
+        # Gender — unify to single character
+        if cl in ("gender", "sex"):
+            if s is not None:
+                non_code = s[s.str.lower().isin([
+                    "male", "female", "man", "woman",
+                    "non-binary", "nonbinary", "unknown"])]
+                if len(non_code):
+                    fixes.append({"Field": col,
+                                  "Fix": "Normalise gender to single character (M/F/O/U)",
+                                  "Records": len(non_code), "Apply": False})
+
     if not fixes:
         fixes.append({"Field": "—", "Fix": "No critical issues detected",
                       "Records": 0, "Apply": False})
-    return pd.DataFrame(fixes)
+
+    # Deduplicate (same field + fix)
+    seen, deduped = set(), []
+    for f in fixes:
+        key = (f["Field"], f["Fix"])
+        if key not in seen:
+            seen.add(key)
+            deduped.append(f)
+
+    return pd.DataFrame(deduped)
+
 
 # ── STEP 1: Ingest ────────────────────────────────────────────────────────────
 if st.session_state.step == 1:
@@ -302,10 +387,10 @@ elif st.session_state.step == 2:
     issues_n     = int(profile["_has_issues"].sum())
     completeness = round((1 - df.isna().mean().mean()) * 100, 1)
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Records",      f"{len(df):,}")
-    c2.metric("Columns",      len(df.columns))
+    c1.metric("Records",        f"{len(df):,}")
+    c2.metric("Columns",        len(df.columns))
     c3.metric("Quality issues", issues_n)
-    c4.metric("Completeness", f"{completeness}%")
+    c4.metric("Completeness",   f"{completeness}%")
 
     st.markdown("---")
     display = profile.drop(columns=["_has_issues"]).copy()
@@ -381,7 +466,6 @@ elif st.session_state.step == 3:
 
     if st.button("▶  Apply fixes & configure match rules", type="primary",
                  use_container_width=True):
-        # Apply selected fixes to the dataframe
         df_clean = st.session_state.df.copy()
         for _, row in fixes_df[fixes_df["Apply"]].iterrows():
             col      = row["Field"]
@@ -390,7 +474,7 @@ elif st.session_state.step == 3:
                 try:
                     df_clean = apply_fix_to_column(df_clean, col, fix_type)
                 except Exception:
-                    pass  # silently skip if a cleanser fails
+                    pass
         st.session_state.cleaned_df = df_clean
         st.session_state.step = 4
         st.rerun()
@@ -402,9 +486,9 @@ elif st.session_state.step == 4:
     st.markdown('<div class="section-sub">LLM semantic analysis → Reltio matchGroups + Semarchy YAML</div>',
                 unsafe_allow_html=True)
 
-    entity_type   = st.session_state.entity_type
-    api_key       = st.session_state.api_key
-    df            = st.session_state.df
+    entity_type = st.session_state.entity_type
+    api_key     = st.session_state.api_key
+    df          = st.session_state.df
 
     if not api_key:
         st.warning("Enter your Anthropic API key in the sidebar to continue.")
@@ -426,16 +510,15 @@ elif st.session_state.step == 4:
                      + (f" ({skipped} skipped — too sparse)" if skipped else ""))
 
             st.write("🧠 Classifying column semantics from real data…")
-            sem = analyze_semantics(prof, entity_type, api_key)
+            sem  = analyze_semantics(prof, entity_type, api_key)
             cols = sem.get("columns", {})
             n_pri = sum(1 for c in cols.values() if c.get("can_be_primary"))
             st.write(f"✅ {len(cols)} columns classified, {n_pri} primary candidates")
 
             st.write("⚙️  Generating matchGroups JSON…")
-            rules = generate_match_rules(prof, sem, entity_type, api_key)
+            rules  = generate_match_rules(prof, sem, entity_type, api_key)
             groups = rules.get("matchGroups", [])
             st.write(f"✅ {len(groups)} match group(s) generated")
-
             status.update(label="✅ Pipeline complete!", state="complete")
 
         st.session_state.match_rules = rules
@@ -471,12 +554,9 @@ elif st.session_state.step == 4:
             label    = g.get("label", g.get("uri", "").split("/")[-1])
             scope    = g.get("scope", "ALL")
             use_ov   = g.get("useOvOnly", "false")
-            card_cls = ("neg" if is_neg else
-                        "auto-rule" if rtype == "automatic" else "")
-            type_tag = (_tag("negativeRule", "tag-neg") if is_neg
-                        else _type_tag(rtype))
-            ov_badge = (_tag("useOvOnly ✓", "tag-suspect")
-                        if use_ov == "true" else "")
+            card_cls = ("neg" if is_neg else "auto-rule" if rtype == "automatic" else "")
+            type_tag = (_tag("negativeRule", "tag-neg") if is_neg else _type_tag(rtype))
+            ov_badge = (_tag("useOvOnly ✓", "tag-suspect") if use_ov == "true" else "")
             st.markdown(f"""<div class="rule-card {card_cls}">
               <div class="rule-title">{label}</div>
               <div class="rule-meta">
@@ -487,7 +567,6 @@ elif st.session_state.step == 4:
               </div>
             </div>""", unsafe_allow_html=True)
 
-        # ── Semantic analysis expander ─────────────────────────────────────────
         with st.expander("🧠 Semantic analysis detail"):
             for cname, info in sem.get("columns", {}).items():
                 stype   = info.get("semantic_type", "unknown")
@@ -507,50 +586,41 @@ elif st.session_state.step == 4:
                   <div class="sem-reason">{reason}</div>
                 </div>""", unsafe_allow_html=True)
 
-        # ── NL refinement ─────────────────────────────────────────────────────
         st.markdown("---")
         st.markdown("**Natural language refinement**")
         st.caption("Try: *remove the relevance rule*, *disable negative rules*, "
-                   "*what rules were generated and why*")
-        nl_input = st.text_input("Describe your refinement", placeholder="e.g. remove the relevance rule",
+                   "*list rules*, *set scope internal*")
+        nl_input = st.text_input("Describe your refinement",
+                                 placeholder="e.g. remove the relevance rule",
                                  key="nl_input")
         if st.button("Apply instruction") and nl_input.strip():
-            msg   = nl_input.strip().lower()
-            reply = ""
+            msg            = nl_input.strip().lower()
+            reply          = ""
             updated_groups = list(rules.get("matchGroups", []))
 
             if any(w in msg for w in ("remove relevance", "delete relevance", "no relevance")):
                 before = len(updated_groups)
                 updated_groups = [g for g in updated_groups if g.get("type") != "relevance_based"]
-                removed = before - len(updated_groups)
-                reply = f"Removed {removed} relevance-based group(s)."
-
+                reply = f"Removed {before - len(updated_groups)} relevance-based group(s)."
             elif any(w in msg for w in ("remove negative", "disable negative", "no negative")):
                 before = len(updated_groups)
                 updated_groups = [g for g in updated_groups if "negativeRule" not in g]
-                removed = before - len(updated_groups)
-                reply = f"Removed {removed} negative rule(s)."
-
+                reply = f"Removed {before - len(updated_groups)} negative rule(s)."
             elif any(w in msg for w in ("remove suspect", "delete suspect", "no suspect")):
                 before = len(updated_groups)
                 updated_groups = [g for g in updated_groups if g.get("type") != "suspect"]
-                removed = before - len(updated_groups)
-                reply = f"Removed {removed} suspect group(s)."
-
+                reply = f"Removed {before - len(updated_groups)} suspect group(s)."
             elif any(w in msg for w in ("how many", "what rules", "list rules", "show rules")):
                 names = [g.get("label", g.get("uri", "?")) for g in updated_groups]
                 reply = f"{len(names)} rules: " + "; ".join(names)
-
             elif any(w in msg for w in ("scope internal", "set scope internal")):
                 for g in updated_groups:
                     g["scope"] = "INTERNAL"
                 reply = "Set scope=INTERNAL on all groups."
-
             elif any(w in msg for w in ("scope all", "set scope all")):
                 for g in updated_groups:
                     g["scope"] = "ALL"
                 reply = "Set scope=ALL on all groups."
-
             else:
                 reply = ("Not recognised. Try: 'remove the relevance rule', "
                          "'disable negative rules', 'set scope internal', 'list rules'.")
@@ -571,30 +641,23 @@ elif st.session_state.step == 4:
                                 unsafe_allow_html=True)
 
         st.markdown("---")
-        # Vector similarity threshold slider
         st.session_state.vec_threshold = st.slider(
             "Semantic similarity threshold",
             min_value=0.70, max_value=0.99, step=0.01,
             value=st.session_state.vec_threshold,
-            help="Cosine similarity cutoff for embedding-based match candidates. "
-                 "Higher = stricter (fewer but more confident matches).")
+            help="Cosine similarity cutoff. Higher = stricter matches.")
 
         if st.button("▶  Run match simulation", type="primary", use_container_width=True):
             with st.spinner(f"Simulating {len(df):,} records…"):
                 counts = simulate_match_counts(df, rules)
-
             vec_results = None
             if vector_available():
-                with st.spinner(
-                    f"Running semantic similarity ({backend_name()})…"):
+                with st.spinner(f"Running semantic similarity ({backend_name()})…"):
                     vec_results = find_semantic_matches(
-                        df,
-                        threshold=st.session_state.vec_threshold,
-                    )
+                        df, threshold=st.session_state.vec_threshold)
             else:
                 st.info("Install `sentence-transformers` or `scikit-learn` "
                         "to enable semantic similarity matching.")
-
             st.session_state.counts         = counts
             st.session_state.vector_results = vec_results
             st.session_state.step           = 5
@@ -617,24 +680,22 @@ elif st.session_state.step == 5:
     total_pairs = sum(v.get("matching_pairs",    0) for v in counts.values())
     n_auto      = sum(1 for g in groups if g.get("type") == "automatic")
     n_suspect   = sum(1 for g in groups if g.get("type") == "suspect")
-    n_neg       = sum(1 for g in groups if "negativeRule" in g)
 
-    vec     = st.session_state.get("vector_results") or {}
-    vec_mp  = vec.get("matching_profiles", 0)
-    vec_pairs = vec.get("matching_pairs",  0)
-    vec_eng = vec.get("engine", "—")
+    vec       = st.session_state.get("vector_results") or {}
+    vec_mp    = vec.get("matching_profiles", 0)
+    vec_pairs = vec.get("matching_pairs", 0)
+    vec_eng   = vec.get("engine", "—")
 
     c1, c2, c3, c4, c5, c6 = st.columns(6)
-    c1.metric("Total profiles",        f"{total:,}")
-    c2.metric("Rule-based matched",    f"{total_mp:,}")
-    c3.metric("Rule candidate pairs",  f"{total_pairs:,}")
-    c4.metric("Semantic matched",      f"{vec_mp:,}")
-    c5.metric("Semantic pairs",        f"{vec_pairs:,}")
-    c6.metric("Auto-merge groups",     n_auto)
+    c1.metric("Total profiles",       f"{total:,}")
+    c2.metric("Rule-based matched",   f"{total_mp:,}")
+    c3.metric("Rule candidate pairs", f"{total_pairs:,}")
+    c4.metric("Semantic matched",     f"{vec_mp:,}")
+    c5.metric("Semantic pairs",       f"{vec_pairs:,}")
+    c6.metric("Auto-merge groups",    n_auto)
 
     st.markdown("---")
 
-    rows = []
     for g in groups:
         uri    = g.get("uri", "")
         label  = g.get("label", uri.split("/")[-1])
@@ -646,11 +707,13 @@ elif st.session_state.step == 5:
         method = c.get("method", "—")
         pct    = (mp / total * 100) if total else 0
         risk   = ("⚠️ High" if pct > 30 else "Medium" if pct > 10 else "Low")
+        t_cls  = ("tag-neg" if rtype == "negativeRule" else
+                  "tag-auto" if rtype == "automatic" else "tag-suspect")
 
         st.markdown(f"""<div class="rule-card {'neg' if rtype=='negativeRule' else ''}">
           <div class="rule-title">{label}</div>
           <div class="rule-meta">
-            <span class="tag {'tag-neg' if rtype=='negativeRule' else 'tag-auto' if rtype=='automatic' else 'tag-suspect'}">{rtype}</span>
+            <span class="tag {t_cls}">{rtype}</span>
             <span class="tag" style="background:#1e2130;color:#94a3b8;">{method}</span>
           </div>
           <div class="match-stats">
@@ -673,102 +736,60 @@ elif st.session_state.step == 5:
           </div>
         </div>""", unsafe_allow_html=True)
 
-        rows.append({
-            "Match group":       label,
-            "Type":              rtype,
-            "Matching profiles": mp,
-            "% of total":        f"{pct:.1f}%",
-            "Candidate pairs":   pairs,
-            "Largest cluster":   clust,
-            "Method":            method,
-            "Over-match risk":   risk,
-        })
-
-    # ── Semantic similarity results ──────────────────────────────────────────
+    # ── Semantic similarity ───────────────────────────────────────────────────
     if vec and vec.get("matching_pairs", 0) > 0:
         st.markdown("---")
         st.markdown("### 🧬 Semantic similarity results")
-        st.caption(
-            f"Engine: **{vec_eng}** · "
-            f"Threshold: **{vec.get('threshold', 0.85):.0%}** · "
-            f"Finds soft duplicates that exact/phonetic rules miss — "
-            f"different spellings, abbreviations, missing fields."
-        )
+        st.caption(f"Engine: **{vec_eng}** · "
+                   f"Threshold: **{vec.get('threshold', 0.85):.0%}** · "
+                   f"Finds soft duplicates that exact/phonetic rules miss.")
 
-        # Gap analysis
         gap_analysis = compare_with_rules(counts, vec, df)
-        gap_pct = gap_analysis.get("gap_pct", 0)
+        gap_pct      = gap_analysis.get("gap_pct", 0)
 
         cg1, cg2, cg3 = st.columns(3)
-        cg1.metric("Semantic matches",
-                   f"{vec.get('matching_profiles',0):,}",
-                   help="Profiles involved in at least one high-similarity pair")
+        cg1.metric("Semantic matches", f"{vec.get('matching_profiles',0):,}")
         cg2.metric("Not covered by rules",
                    f"~{gap_analysis.get('vector_only_estimate',0):,}",
                    delta=f"{gap_pct:.0f}% gap" if gap_pct > 0 else "0% gap",
-                   delta_color="inverse",
-                   help="Semantic matches estimated to be missed by current rules")
-        cg3.metric("Largest semantic cluster",
-                   f"{vec.get('largest_cluster',0):,}",
-                   help="Biggest group of records all semantically similar to each other")
+                   delta_color="inverse")
+        cg3.metric("Largest semantic cluster", f"{vec.get('largest_cluster',0):,}")
 
-        # Gap warning
         if gap_pct > 20:
-            st.warning(
-                f"⚠️  **~{gap_pct:.0f}% of semantic matches are not covered by your "
-                f"current rules.** Consider adding a broader suspect rule or "
-                f"lowering the similarity threshold on existing rules.",
-                icon="⚠️"
-            )
+            st.warning(f"⚠️  **~{gap_pct:.0f}% of semantic matches not covered by rules.** "
+                       f"Consider a broader suspect rule.", icon="⚠️")
         elif gap_pct > 5:
-            st.info(
-                f"ℹ️  ~{gap_pct:.0f}% of semantic matches may not be covered by rules. "
-                f"Review the sample pairs below."
-            )
+            st.info(f"ℹ️  ~{gap_pct:.0f}% of semantic matches may not be covered by rules.")
         else:
             st.success("✅ Rules appear to cover the semantic matches well.", icon="✅")
 
-        # Sample pairs the rules likely missed
         gap_sample = gap_analysis.get("gap_sample", [])
         if gap_sample:
             with st.expander(f"🔍 Sample pairs rules may have missed ({len(gap_sample)})"):
                 for p in gap_sample:
-                    score_color = "#4ade80" if p['score'] >= 0.92 else "#fb923c"
+                    sc = "#4ade80" if p['score'] >= 0.92 else "#fb923c"
                     st.markdown(
                         f"<div style='background:#161821;border:1px solid #1e2130;"
                         f"border-radius:8px;padding:.6rem .9rem;margin-bottom:.4rem;'>"
-                        f"<span style='font-family:IBM Plex Mono;font-size:.7rem;"
-                        f"color:{score_color};'>similarity: {p['score']:.3f}</span><br>"
+                        f"<span style='font-family:IBM Plex Mono;font-size:.7rem;color:{sc};'>"
+                        f"similarity: {p['score']:.3f}</span><br>"
                         f"<span style='font-size:.8rem;color:#e2e8f0;'>A: {p['preview_a']}</span><br>"
                         f"<span style='font-size:.8rem;color:#94a3b8;'>B: {p['preview_b']}</span>"
-                        f"</div>",
-                        unsafe_allow_html=True
-                    )
+                        f"</div>", unsafe_allow_html=True)
 
-        # Top semantic pairs by confidence
         sample_pairs = vec.get("sample_pairs", [])[:20]
         if sample_pairs:
             with st.expander("📊 Top semantic match pairs by similarity score"):
-                pairs_df = pd.DataFrame([
-                    {
-                        "Score":     p["score"],
-                        "Record A":  p["preview_a"],
-                        "Record B":  p["preview_b"],
-                    }
-                    for p in sample_pairs
-                ])
-                st.dataframe(pairs_df, use_container_width=True, hide_index=True)
-
+                st.dataframe(pd.DataFrame([{
+                    "Score": p["score"], "Record A": p["preview_a"],
+                    "Record B": p["preview_b"]} for p in sample_pairs]),
+                    use_container_width=True, hide_index=True)
     elif vector_available():
-        st.info(f"No semantic matches found above the "
-                f"{st.session_state.vec_threshold:.0%} threshold. "
-                f"Try lowering the threshold in Step 04.")
+        st.info(f"No semantic matches found above "
+                f"{st.session_state.vec_threshold:.0%} threshold.")
     else:
-        st.markdown("---")
-        st.caption(
-            "💡 Install `sentence-transformers` or `scikit-learn` for semantic "
-            "similarity matching: `pip install sentence-transformers`"
-        )
+        st.caption("💡 Install `sentence-transformers` for semantic matching: "
+                   "`pip install sentence-transformers`")
 
     st.markdown("---")
     if st.button("▶  Proceed to export", type="primary", use_container_width=True):
@@ -792,13 +813,12 @@ elif st.session_state.step == 6:
     total       = len(df)
     ts          = datetime.now().strftime("%Y%m%d_%H%M")
 
-    # Summary
     c1, c2 = st.columns(2)
     with c1:
-        applied       = int(fixes["Apply"].sum())
-        recs_fixed    = int(fixes[fixes["Apply"]]["Records"].sum())
-        total_mp      = sum(v.get("matching_profiles", 0) for v in counts.values())
-        total_pairs   = sum(v.get("matching_pairs",    0) for v in counts.values())
+        applied    = int(fixes["Apply"].sum())
+        recs_fixed = int(fixes[fixes["Apply"]]["Records"].sum())
+        total_mp   = sum(v.get("matching_profiles", 0) for v in counts.values())
+        total_pairs= sum(v.get("matching_pairs",    0) for v in counts.values())
         st.markdown("**Pipeline summary**")
         st.markdown(f"- Entity type: **{entity_type}**")
         st.markdown(f"- Total records: **{total:,}**")
@@ -806,39 +826,30 @@ elif st.session_state.step == 6:
         st.markdown(f"- Match groups generated: **{len(groups)}**")
         st.markdown(f"- Profiles matched: **{total_mp:,}** across all rules")
         st.markdown(f"- Candidate pairs: **{total_pairs:,}**")
-
     with c2:
         st.markdown("**Match groups**")
         for g in groups:
             rtype = ("negativeRule" if "negativeRule" in g else g.get("type", "—"))
             label = g.get("label", g.get("uri", "?").split("/")[-1])
-            icon  = {"automatic": "⚡", "suspect": "🔍",
-                     "relevance_based": "⚖️", "negativeRule": "🚫"}.get(rtype, "•")
+            icon  = {"automatic":"⚡","suspect":"🔍",
+                     "relevance_based":"⚖️","negativeRule":"🚫"}.get(rtype, "•")
             st.markdown(f"{icon} {label}")
 
     st.markdown("---")
-
-    # ── Export cards ──────────────────────────────────────────────────────────
 
     # 1. Reltio matchGroups JSON
     reltio_json = json.dumps(rules, indent=2)
     st.markdown('<div class="export-card">', unsafe_allow_html=True)
     st.markdown('<div class="export-title">🔷 Reltio — matchGroups JSON</div>',
                 unsafe_allow_html=True)
-    st.markdown(
-        '<div class="export-sub">Drop this JSON into your Reltio tenant metadata '
-        'configuration under the entity type definition. Contains all match groups '
-        'including automatic, suspect, relevance-based and negative rules.</div>',
-        unsafe_allow_html=True)
+    st.markdown('<div class="export-sub">Drop this into your Reltio tenant metadata '
+                'configuration under the entity type definition.</div>',
+                unsafe_allow_html=True)
     st.code(reltio_json[:800] + ("\n..." if len(reltio_json) > 800 else ""),
             language="json")
-    st.download_button(
-        "⬇️  Download matchGroups.json",
-        data=reltio_json,
-        file_name=f"{entity_type}_matchGroups_{ts}.json",
-        mime="application/json",
-        use_container_width=True,
-    )
+    st.download_button("⬇️  Download matchGroups.json", data=reltio_json,
+                       file_name=f"{entity_type}_matchGroups_{ts}.json",
+                       mime="application/json", use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
     # 2. Semarchy YAML
@@ -846,22 +857,14 @@ elif st.session_state.step == 6:
     st.markdown('<div class="export-card">', unsafe_allow_html=True)
     st.markdown('<div class="export-title">🔶 Semarchy — Entity YAML (matcher block)</div>',
                 unsafe_allow_html=True)
-    st.markdown(
-        '<div class="export-sub">Paste this YAML block inside your Semarchy entity design '
-        'file. Uses SemQL match conditions with exact and fuzzy (SEM_EDIT_DISTANCE_SIMILARITY) '
-        'logic. Match scores are set per Semarchy conventions: automatic→100, suspect→85, '
-        'relevance→70. Negative rules are excluded — Semarchy handles prevention via merge '
-        'thresholds.</div>',
-        unsafe_allow_html=True)
+    st.markdown('<div class="export-sub">Paste inside your Semarchy entity design file. '
+                'Uses SemQL conditions with SEM_EDIT_DISTANCE_SIMILARITY for fuzzy fields.</div>',
+                unsafe_allow_html=True)
     st.code(semarchy_yaml[:800] + ("\n..." if len(semarchy_yaml) > 800 else ""),
             language="yaml")
-    st.download_button(
-        "⬇️  Download semarchy_matcher.yaml",
-        data=semarchy_yaml,
-        file_name=f"{entity_type}_semarchy_matcher_{ts}.yaml",
-        mime="text/plain",
-        use_container_width=True,
-    )
+    st.download_button("⬇️  Download semarchy_matcher.yaml", data=semarchy_yaml,
+                       file_name=f"{entity_type}_semarchy_matcher_{ts}.yaml",
+                       mime="text/plain", use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
     # 3. Match counts CSV
@@ -872,70 +875,50 @@ elif st.session_state.step == 6:
             pct    = (c["matching_profiles"] / total * 100) if total else 0
             rows_csv.append({
                 "Match group":       glabel,
-                "Type":              next((g.get("type", "negativeRule")
-                                           for g in groups if g.get("uri") == uri), "—"),
+                "Type":              next((g.get("type","negativeRule")
+                                           for g in groups if g.get("uri")==uri), "—"),
                 "Matching profiles": c["matching_profiles"],
                 "% of total":        f"{pct:.1f}%",
                 "Candidate pairs":   c["matching_pairs"],
                 "Largest cluster":   c["largest_cluster"],
                 "Method":            c["method"],
             })
-        counts_csv = pd.DataFrame(rows_csv).to_csv(index=False)
-
         st.markdown('<div class="export-card">', unsafe_allow_html=True)
         st.markdown('<div class="export-title">📊 Match simulation results — CSV</div>',
                     unsafe_allow_html=True)
-        st.markdown(
-            '<div class="export-sub">Per-rule match counts, candidate pairs, and '
-            'largest cluster sizes simulated against your uploaded dataset.</div>',
-            unsafe_allow_html=True)
-        st.download_button(
-            "⬇️  Download match_counts.csv",
-            data=counts_csv,
-            file_name=f"{entity_type}_match_counts_{ts}.csv",
-            mime="text/csv",
-            use_container_width=True,
-        )
+        st.download_button("⬇️  Download match_counts.csv",
+                           data=pd.DataFrame(rows_csv).to_csv(index=False),
+                           file_name=f"{entity_type}_match_counts_{ts}.csv",
+                           mime="text/csv", use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
     # 4. Semantic analysis JSON
     if sem:
-        sem_json = json.dumps(sem, indent=2)
         st.markdown('<div class="export-card">', unsafe_allow_html=True)
         st.markdown('<div class="export-title">🧠 Semantic analysis — JSON</div>',
                     unsafe_allow_html=True)
-        st.markdown(
-            '<div class="export-sub">The LLM\'s full column classification — semantic types, '
-            'reasoning, match roles, and duplicate behaviour. Useful for auditing rule '
-            'decisions or handing off to a Reltio/Semarchy implementation team.</div>',
-            unsafe_allow_html=True)
-        st.download_button(
-            "⬇️  Download semantic_analysis.json",
-            data=sem_json,
-            file_name=f"{entity_type}_semantic_analysis_{ts}.json",
-            mime="application/json",
-            use_container_width=True,
-        )
+        st.markdown('<div class="export-sub">Full LLM column classification — '
+                    'semantic types, reasoning, match roles.</div>',
+                    unsafe_allow_html=True)
+        st.download_button("⬇️  Download semantic_analysis.json",
+                           data=json.dumps(sem, indent=2),
+                           file_name=f"{entity_type}_semantic_analysis_{ts}.json",
+                           mime="application/json", use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown("---")
-    # ── Cleaned file export ───────────────────────────────────────────────────
+    # 5. Cleaned dataset CSV
     cleaned_df = st.session_state.get("cleaned_df")
     if cleaned_df is not None:
+        orig_df = st.session_state.df
         st.markdown('<div class="export-card">', unsafe_allow_html=True)
         st.markdown('<div class="export-title">✅ Cleaned dataset — CSV</div>',
                     unsafe_allow_html=True)
-        fixes_applied = st.session_state.dq_fixes
-        n_applied     = int(fixes_applied["Apply"].sum())
-        recs_fixed    = int(fixes_applied[fixes_applied["Apply"]]["Records"].sum())
-        orig_df       = st.session_state.df
 
         c1, c2, c3 = st.columns(3)
         c1.metric("Original records",  f"{len(orig_df):,}")
-        c2.metric("DQ fixes applied",  n_applied)
-        c3.metric("Records corrected", f"{recs_fixed:,}")
+        c2.metric("DQ fixes applied",  int(fixes["Apply"].sum()))
+        c3.metric("Records corrected", f"{int(fixes[fixes['Apply']]['Records'].sum()):,}")
 
-        # Show diff of changed cells
         changed_cols = []
         for col in orig_df.columns:
             if col in cleaned_df.columns:
@@ -947,26 +930,20 @@ elif st.session_state.step == 6:
             st.dataframe(pd.DataFrame(changed_cols), use_container_width=True,
                          hide_index=True)
 
-        st.markdown(
-            '<div class="export-sub">The original dataset with all selected DQ fixes '
-            'applied — phone numbers normalised to E.164, names title-cased, emails '
-            'validated and lowercased, dates standardised to ISO 8601, address '
-            'abbreviations expanded. Use this file as the cleaned input for '
-            'Reltio or Semarchy ingestion.</div>',
-            unsafe_allow_html=True)
-
+        st.markdown('<div class="export-sub">Dataset with all selected DQ fixes applied — '
+                    'phone/fax E.164, names title-cased, nicknames resolved, emails validated, '
+                    'dates ISO 8601, state codes normalised, license prefixes restored, '
+                    'specialty synonyms unified, gender coded.</div>',
+                    unsafe_allow_html=True)
         csv_buf = io.StringIO()
         cleaned_df.to_csv(csv_buf, index=False)
-        st.download_button(
-            "⬇️  Download cleaned_dataset.csv",
-            data=csv_buf.getvalue(),
-            file_name=f"{entity_type}_cleaned_{ts}.csv",
-            mime="text/csv",
-            use_container_width=True,
-        )
+        st.download_button("⬇️  Download cleaned_dataset.csv",
+                           data=csv_buf.getvalue(),
+                           file_name=f"{entity_type}_cleaned_{ts}.csv",
+                           mime="text/csv", use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
     else:
-        st.info("No cleaned dataset available — go back to Step 3 and apply DQ fixes.")
+        st.info("No cleaned dataset — go back to Step 3 and apply DQ fixes.")
 
     st.markdown("---")
     if st.button("🔄 Start new iteration", use_container_width=True):
