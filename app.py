@@ -478,7 +478,7 @@ elif st.session_state.step == 4:
 
             st.write("⚙️  Generating matchGroups JSON…")
             profiling_summary = prof
-            semantic = sem
+           
             rules = generate_evidence_driven_rules(
                 profiling_summary, semantic, match_evidence,
                 entity_type, api_key,
