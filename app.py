@@ -50,7 +50,7 @@ except Exception:
  
 # ── utils.llm — evidence-driven rule generation (Pass 2.5) ───────────────────
 try:
-    from utils.llm import generate_evidence_driven_rules, format_evidence_summary
+    from utils.llm import generate_evidence_driven_rules, format_evidence_summary, analyze_semantics, generate_match_rules
 except ImportError:
     def generate_evidence_driven_rules(prof, sem, evidence, entity_type, api_key, **kw):
         from utils.llm import generate_match_rules
