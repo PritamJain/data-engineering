@@ -18,11 +18,9 @@ from datetime import datetime
 import pandas as pd
 import streamlit as st
 
-from utils.llm import analyze_semantics, generate_match_rules
 from utils.profiler import profile_dataframe, simulate_match_counts
 from utils.semarchy import reltio_to_semarchy_yaml
 from utils.cleansers import apply_fix_to_column, available_cleansers
-from utils.vectorizer import find_semantic_matches, compare_with_rules, backend_name, available as vector_available
 from utils.mdm_simulator import simulate, golden_records_to_df, entity_360
 from utils.vectorizer import run_evidence_pipeline
 from utils.llm import generate_evidence_driven_rules, format_evidence_summary
