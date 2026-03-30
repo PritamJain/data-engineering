@@ -11,7 +11,7 @@ v3.1 fixes:
   • Semantic prompt now explicitly says "do not truncate — complete all columns"
   • Cache invalidated (PROMPT_VERSION bumped to v3.1)
 """
-
+from __future__ import annotations
 import hashlib
 import json
 import os
@@ -19,7 +19,7 @@ import re
 
 import anthropic
 from utils.entity_config import get_inference_guide, get_negative_rule_guidance
-from __future__ import annotations
+
 
 
 _CACHE_FILE    = ".match_rule_cache.json"
