@@ -19,6 +19,8 @@ import re
 
 import anthropic
 from utils.entity_config import get_inference_guide, get_negative_rule_guidance
+from __future__ import annotations
+
 
 _CACHE_FILE    = ".match_rule_cache.json"
 PROMPT_VERSION = "v3.5"
@@ -580,3 +582,228 @@ def generate_match_rules(
     cache[key] = parsed
     _save_cache(cache)
     return parsed
+
+_EVIDENCE_SYSTEM = """
+You are a Reltio MDM expert generating production-quality matchGroups JSON.
+
+You have TWO inputs:
+  1. Semantic analysis  — LLM-classified column types and match roles
+  2. Match evidence     — empirically extracted from REAL confirmed duplicate pairs
+                          found in the actual dataset by vector similarity + Claude adjudication
+
+EVIDENCE FIELDS:
+  frequency        — fraction of confirmed MATCH pairs where this field agreed (0.0–1.0)
+  match_type       — "exact" | "fuzzy_phonetic" | "mixed"
+  weight_suggestion — suggested relevance weight (0.0–1.0)
+  examples         — real value pairs that triggered the match
+
+EVIDENCE INTERPRETATION RULES:
+  • frequency ≥ 0.85  → HIGH-VALUE field. Use as primary match criterion.
+  • frequency 0.50–0.84 → SUPPORTING field. Include in composite rules or exactOrNull.
+  • frequency 0.25–0.49 → WEAK field. Use only as exactOrNull or ignore.
+  • frequency < 0.25    → NOISE. Do not use in rules.
+
+  • match_type = "exact"        → use ExactMatchToken + ExactComparator
+  • match_type = "fuzzy_phonetic" → use DoubleMetaphoneMatchToken + DoubleMetaphoneComparator
+  • match_type = "mixed"        → prefer fuzzy token with exact fallback
+
+PRIORITY: Evidence OVERRIDES schema-inferred match roles for fields with frequency ≥ 0.5.
+  Example: if schema says "specialty = taxonomy_code (not_matchable)"
+           but evidence says "specialty frequency = 0.78, match_type = exact"
+           → include specialty as a supporting exact field in the name+DOB rule.
+
+Follow all standard Reltio rules (R1–R10):
+  [R1] strong_identifier → type=automatic, ExactMatchToken
+  [R2] scoped_identifier → type=suspect with scope constraint
+  [R3] person_name → ONE combined suspect group (LastName exact + FirstName fuzzy + DOB/Middle exactOrNull)
+  [R4] organization_name → suspect, fuzzy
+  [R5] address → only if street+city+state present
+  [R6] relevance_based → only if 4+ soft attributes with NO strong/name rules possible
+  [R7] negativeRule → only eligible fields (see entity guidance below)
+  [R8] NEVER standalone group for: contact_info, demographic, taxonomy_code, system_field
+  [R9] Non-negative groups MUST have: uri, label, type, scope=ALL, useOvOnly=true,
+       scoreStandalone=0, scoreIncremental=0
+  [R10] 4–8 match groups total; no duplicates
+
+CRITICAL OUTPUT RULES:
+  • Output ONLY raw JSON. No markdown, no fences, no prose.
+  • Every string on one line — no literal newlines inside strings.
+  • No trailing commas.
+  • Complete the full JSON — do not truncate.
+""".strip()
+
+_EVIDENCE_USER = """
+Entity type: {entity_type}
+
+── Semantic analysis (column classifications) ───────────────────────────────
+{semantic_json}
+
+── Match evidence (empirical, from confirmed duplicate pairs in actual data) ─
+Confirmed MATCH pairs analysed: {n_match}
+Field-level agreement evidence (sorted by frequency):
+{evidence_json}
+
+── Profiling summary (for context) ─────────────────────────────────────────
+{profiling_json}
+
+Generate the complete matchGroups JSON now.
+Use the evidence frequency and match_type to:
+  1. Confirm or correct schema-inferred roles
+  2. Set exact vs fuzzy matching per field
+  3. Choose primary vs supporting fields based on frequency
+  4. Skip fields with frequency < 0.25 from all rules
+""".strip()
+
+
+def generate_evidence_driven_rules(
+    profiling_summary: dict,
+    semantic_analysis: dict,
+    match_evidence:    dict,
+    entity_type:       str,
+    api_key:           str,
+    n_match_pairs:     int = 0,
+) -> dict:
+    """
+    Pass 2.5: Generate match rules grounded in actual data evidence.
+
+    If match_evidence is empty (no confirmed duplicates found by vectorizer),
+    falls back transparently to generate_match_rules() (Pass 2).
+
+    Args:
+        profiling_summary:  Output of profiler.profile_dataframe()
+        semantic_analysis:  Output of analyze_semantics() (Pass 1)
+        match_evidence:     Output of vectorizer.extract_match_evidence()
+        entity_type:        e.g. "HCP", "Customer"
+        api_key:            Anthropic API key
+        n_match_pairs:      Number of MATCH pairs used to build evidence (for prompt context)
+
+    Returns:
+        matchGroups JSON dict — same schema as generate_match_rules() output.
+    """
+    # Fallback: no evidence → standard Pass 2
+    if not match_evidence:
+        return generate_match_rules(profiling_summary, semantic_analysis, entity_type, api_key)
+
+    cache = _load_cache()
+    key   = _sha({
+        "s": semantic_analysis,
+        "ev": match_evidence,
+        "e": entity_type,
+        "step": "evidence_rules",
+        "pv": PROMPT_VERSION,
+    })
+    if key in cache:
+        return cache[key]
+
+    import anthropic
+    client = anthropic.Anthropic(api_key=api_key)
+
+    # Build entity-specific negative rule guidance (same as Pass 2)
+    from utils.entity_config import get_negative_rule_guidance
+    neg_guidance = get_negative_rule_guidance(entity_type)
+
+    system_prompt = _EVIDENCE_SYSTEM
+    if neg_guidance:
+        system_prompt += f"\n\nNEGATIVE RULE ELIGIBILITY for {entity_type}:\n{neg_guidance}"
+
+    resp = client.messages.create(
+        model      = "claude-sonnet-4-6",
+        max_tokens = 8096,
+        temperature= 0,
+        system     = system_prompt,
+        messages   = [{
+            "role": "user",
+            "content": _EVIDENCE_USER.format(
+                entity_type   = entity_type,
+                semantic_json = json.dumps(semantic_analysis, indent=2),
+                evidence_json = json.dumps(match_evidence, indent=2),
+                profiling_json= json.dumps(profiling_summary, indent=2),
+                n_match       = n_match_pairs,
+            ),
+        }],
+    )
+
+    parsed = _parse_json_robust(
+        resp.content[0].text,
+        api_key  = api_key,
+        context  = f"evidence-driven Reltio matchGroups for {entity_type}",
+    )
+
+    if "matchGroups" not in parsed:
+        raise ValueError("Evidence-driven response missing 'matchGroups' key — "
+                         "falling back to standard Pass 2")
+
+    # Apply same auto-repair logic as generate_match_rules()
+    _RULE_LEVEL_KEYS = {
+        "weights", "comparators", "comparatorClasses",
+        "matchTokenClasses", "matchTokens", "actionThresholds",
+        "and", "or", "exact", "fuzzy", "ignoreInToken", "cleanse",
+    }
+    for g in parsed["matchGroups"]:
+        is_neg = "negativeRule" in g
+
+        # Auto-derive uri from label and vice versa
+        if "uri" not in g and "label" in g:
+            slug   = re.sub(r"[^A-Za-z0-9]", "", g["label"].title().replace(" ", ""))
+            et     = entity_type.replace(" ", "")
+            prefix = "NegativeRuleOn" if is_neg else "MatchOn"
+            g["uri"] = f"configuration/entityTypes/{et}/matchGroups/{prefix}{slug}"
+
+        if "label" not in g and "uri" in g:
+            slug = g["uri"].rstrip("/").split("/")[-1]
+            for pfx in ("NegativeRuleOn", "MatchOn"):
+                if slug.startswith(pfx):
+                    slug = slug[len(pfx):]
+                    break
+            readable = re.sub(r"(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])", " ", slug)
+            g["label"] = ("Negative Rule - " if is_neg else "Match on ") + readable
+
+        if not is_neg and "rule" not in g:
+            misplaced = {k: v for k, v in g.items() if k in _RULE_LEVEL_KEYS}
+            if misplaced:
+                g["rule"] = misplaced
+                for k in misplaced:
+                    del g[k]
+                rule = g["rule"]
+                if "comparators" in rule and "comparatorClasses" not in rule:
+                    rule["comparatorClasses"] = rule.pop("comparators")
+                if "matchTokens" in rule and "matchTokenClasses" not in rule:
+                    rule["matchTokenClasses"] = rule.pop("matchTokens")
+
+        if not is_neg:
+            g.setdefault("scope",            "ALL")
+            g.setdefault("useOvOnly",        "true")
+            g.setdefault("scoreStandalone",  0)
+            g.setdefault("scoreIncremental", 0)
+        else:
+            g.setdefault("scope", "ALL")
+
+    cache[key] = parsed
+    _save_cache(cache)
+    return parsed
+
+
+# ── Helper: evidence summary for UI display ───────────────────────────────────
+
+def format_evidence_summary(match_evidence: dict) -> list[dict]:
+    """
+    Convert match_evidence dict to a list of dicts for Streamlit display.
+    Returns rows sorted by frequency descending.
+    """
+    rows = []
+    for field, ev in match_evidence.items():
+        rows.append({
+            "Field":             field,
+            "Frequency":         f"{ev['frequency']:.0%}",
+            "Match type":        ev["match_type"].replace("_", " "),
+            "Exact / Fuzzy":     f"{ev['exact_matches']} / {ev['fuzzy_matches']}",
+            "Compared pairs":    ev["total_compared"],
+            "Weight suggestion": ev["weight_suggestion"],
+            "Strength":          (
+                "🟢 High"   if ev["frequency"] >= 0.85 else
+                "🟡 Medium" if ev["frequency"] >= 0.50 else
+                "🟠 Weak"
+            ),
+        })
+    return rows
+
