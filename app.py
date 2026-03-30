@@ -22,9 +22,41 @@ from utils.profiler import profile_dataframe, simulate_match_counts
 from utils.semarchy import reltio_to_semarchy_yaml
 from utils.cleansers import apply_fix_to_column, available_cleansers
 from utils.mdm_simulator import simulate, golden_records_to_df, entity_360
-from utils.vectorizer import run_evidence_pipeline
-from utils.llm import generate_evidence_driven_rules, format_evidence_summary
 
+# ── utils.vectorizer — optional (degrades gracefully if torch not installed) ──
+try:
+    from utils.vectorizer import (
+        available          as vector_available,   # bool — is any backend present?
+        backend_name,                             # str  — which backend is active
+        find_semantic_matches,                    # original single-pass matcher
+        compare_with_rules,                       # compare rule vs vector results
+        run_evidence_pipeline,                    # Stage1 + Stage2 + Stage3 pipeline
+        find_candidate_pairs,                     # Stage 1 only (embedding retrieval)
+        rerank_with_claude,                       # Stage 2 only (Claude adjudication)
+        extract_match_evidence,                   # Stage 3 only (field evidence)
+        embed_records,                            # raw embeddings if needed
+    )
+except Exception:
+    # Graceful fallback — app works without embeddings
+    def vector_available()        -> bool:  return False
+    def backend_name()            -> str:   return "unavailable"
+    def find_semantic_matches(*a, **kw):    return {"matching_profiles": 0, "matching_pairs": 0, "largest_cluster": 0, "engine": "unavailable", "sample_pairs": []}
+    def compare_with_rules(*a, **kw):       return {}
+    def run_evidence_pipeline(*a, **kw):    return {"candidates": [], "match_evidence": {}, "n_match": 0, "n_suspect": 0, "n_no_match": 0, "engine": "unavailable"}
+    def find_candidate_pairs(*a, **kw):     return []
+    def rerank_with_claude(*a, **kw):       return []
+    def extract_match_evidence(*a, **kw):   return {}
+    def embed_records(*a, **kw):            return None
+ 
+# ── utils.llm — evidence-driven rule generation (Pass 2.5) ───────────────────
+try:
+    from utils.llm import generate_evidence_driven_rules, format_evidence_summary
+except ImportError:
+    def generate_evidence_driven_rules(prof, sem, evidence, entity_type, api_key, **kw):
+        from utils.llm import generate_match_rules
+        return generate_match_rules(prof, sem, entity_type, api_key)
+    def format_evidence_summary(evidence):
+        return [{"field": k, **v} for k, v in evidence.items()]
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
