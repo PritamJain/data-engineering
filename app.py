@@ -140,7 +140,6 @@ DEFAULTS = {
     "card_pct":    90,
     "mdm_result": None,
     "evidence_result": None,
-  
 }
 for k, v in DEFAULTS.items():
     if k not in st.session_state:
@@ -437,22 +436,28 @@ elif st.session_state.step == 4:
             cols = sem.get("columns", {})
             n_pri = sum(1 for c in cols.values() if c.get("can_be_primary"))
             st.write(f"✅ {len(cols)} columns classified, {n_pri} primary candidates")
+
+            evidence_result = {}
             if vector_available() and st.session_state.api_key:
                 with st.spinner("Stage 1: Finding candidate pairs via embedding..."):
+                    prog = st.progress(0)
                     evidence_result = run_evidence_pipeline(
                         df, api_key=st.session_state.api_key,
                         threshold=st.session_state.vec_threshold,
                         max_claude_pairs=100,
-                        progress_callback=lambda i, n: prog.progress(i/n),
-                        )
+                        progress_callback=lambda i, n: prog.progress(i / n),
+                    )
             st.session_state.evidence_result = evidence_result
             match_evidence = (st.session_state.evidence_result or {}).get("match_evidence", {})
 
             st.write("⚙️  Generating matchGroups JSON…")
+            profiling_summary = prof
+            semantic = sem
             rules = generate_evidence_driven_rules(
-                        profiling_summary, semantic, match_evidence,
-                        entity_type, api_key, n_match_pairs=evidence_result.get("n_match", 0)
-                        )
+                profiling_summary, semantic, match_evidence,
+                entity_type, api_key,
+                n_match_pairs=evidence_result.get("n_match", 0),
+            )
             groups = rules.get("matchGroups", [])
             st.write(f"✅ {len(groups)} match group(s) generated")
 
@@ -621,7 +626,8 @@ elif st.session_state.step == 4:
             st.rerun()
 
 # ── STEP 5: Simulate ──────────────────────────────────────────────────────────
-def render_step5():
+# FIX: was incorrectly defined as `def render_step5():` — now a proper elif block
+elif st.session_state.step == 5:
     st.markdown('<div class="step-badge">STEP 05</div>', unsafe_allow_html=True)
     st.markdown('<div class="section-title">Virtual MDM Simulation</div>', unsafe_allow_html=True)
     st.markdown(
@@ -636,349 +642,337 @@ def render_step5():
 
     if df is None or rules is None:
         st.warning("Complete Steps 01-04 first.")
-        return
-
-    # ── Configuration ────────────────────────────────────────────────────────
-    with st.expander("⚙️ Simulation settings", expanded=False):
-        sc1, sc2 = st.columns(2)
-        with sc1:
-            source_col = st.selectbox(
-                "Source system column (optional)",
-                options=["(none)"] + list(df.columns),
-                index=0,
-                help="Column that identifies which source system a record came from. "
-                     "Used to determine survivorship priority.",
-            )
-            source_col = None if source_col == "(none)" else source_col
-
-        with sc2:
-            src_priority_text = st.text_input(
-                "Source priority order (comma-separated, highest first)",
-                value="",
-                placeholder="e.g.  CRM, EHR, Manual",
-                help="Leave blank for most-common-value survivorship.",
-            )
-            source_priorities = (
-                [s.strip() for s in src_priority_text.split(",") if s.strip()]
-                if src_priority_text.strip() else []
-            )
-
-    # ── Run simulation ────────────────────────────────────────────────────────
-    if st.button("▶  Run MDM simulation", type="primary", use_container_width=True):
-        with st.spinner(f"Applying match rules to {len(df):,} records…"):
-            mdm_result = simulate(
-                df,
-                rules,
-                source_col        = source_col,
-                source_priorities = source_priorities,
-                max_golden_records= 500,
-            )
-        st.session_state.mdm_result = mdm_result
-        st.rerun()
-
-    mdm = st.session_state.get("mdm_result")
-    if not mdm:
-        st.info("Click **Run MDM simulation** above to execute.")
-        return
-
-    # ── Summary bar ───────────────────────────────────────────────────────────
-    total = mdm.total_input_records
-    reduction = mdm.dedup_rate_pct
-
-    # Determine colour for dedup rate
-    dedup_color = "#4ade80" if reduction > 5 else "#64748b"
-
-    st.markdown(f"""
-    <div class="summary-bar">
-      <div class="sb-item">
-        <span class="sb-val">{total:,}</span>
-        <span class="sb-lbl">Input records</span>
-      </div>
-      <div class="sb-item">
-        <span class="sb-val" style="color:{dedup_color};">{mdm.total_entities:,}</span>
-        <span class="sb-lbl">Entities (after dedup)</span>
-      </div>
-      <div class="sb-item">
-        <span class="sb-val" style="color:#4ade80;">{mdm.auto_merged_entities:,}</span>
-        <span class="sb-lbl">Auto-merged entities</span>
-      </div>
-      <div class="sb-item">
-        <span class="sb-val" style="color:#a78bfa;">{mdm.suspect_entities:,}</span>
-        <span class="sb-lbl">Suspect (steward review)</span>
-      </div>
-      <div class="sb-item">
-        <span class="sb-val" style="color:#64748b;">{mdm.singleton_entities:,}</span>
-        <span class="sb-lbl">Unique (no match)</span>
-      </div>
-      <div class="sb-item">
-        <span class="sb-val" style="color:{dedup_color};">{reduction:.1f}%</span>
-        <span class="sb-lbl">Dedup reduction</span>
-      </div>
-      <div class="sb-item">
-        <span class="sb-val">{len(mdm.match_pairs):,}</span>
-        <span class="sb-lbl">Match pairs found</span>
-      </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # ── Tabs ──────────────────────────────────────────────────────────────────
-    tab1, tab2, tab3, tab4 = st.tabs([
-        "📋 Entity Grid",
-        "🔍 Entity 360",
-        "🔗 Match Explorer",
-        "📊 Rule Stats",
-    ])
-
-    # ─────────────────────────────────────────────────────────────────────────
-    # TAB 1 — Entity Grid (paginated golden records)
-    # ─────────────────────────────────────────────────────────────────────────
-    with tab1:
-        st.markdown("#### Golden records — merged entities")
-        st.caption(
-            "Each row represents one resolved entity. Cluster Size shows how many "
-            "source records merged. Golden values are chosen by survivorship rules."
-        )
-
-        if not mdm.golden_records:
-            st.info("No duplicate clusters found — all records are unique.")
-        else:
-            grid_df = golden_records_to_df(mdm.golden_records)
-
-            # Filter controls
-            fc1, fc2 = st.columns(2)
-            with fc1:
-                type_filter = st.selectbox(
-                    "Filter by match type",
-                    ["All", "automatic", "suspect"],
+    else:
+        # ── Configuration ─────────────────────────────────────────────────────
+        with st.expander("⚙️ Simulation settings", expanded=False):
+            sc1, sc2 = st.columns(2)
+            with sc1:
+                source_col = st.selectbox(
+                    "Source system column (optional)",
+                    options=["(none)"] + list(df.columns),
+                    index=0,
+                    help="Column that identifies which source system a record came from. "
+                         "Used to determine survivorship priority.",
                 )
-            with fc2:
-                min_cluster = st.slider("Min cluster size", 2, max(
-                    gr.cluster_size for gr in mdm.golden_records), 2)
+                source_col = None if source_col == "(none)" else source_col
 
-            filtered = grid_df.copy()
-            if type_filter != "All":
-                filtered = filtered[filtered["__match_type"] == type_filter]
-            filtered = filtered[filtered["__cluster_size"] >= min_cluster]
-
-            st.caption(f"Showing {len(filtered):,} of {len(grid_df):,} entities")
-
-            # Display columns — show entity meta + first 6 data columns
-            meta_cols = ["__entity_id", "__cluster_size", "__match_type", "__matched_by"]
-            data_cols = [c for c in filtered.columns if not c.startswith("__")][:6]
-            display_cols = meta_cols + data_cols
-            display_cols = [c for c in display_cols if c in filtered.columns]
-
-            rename_map = {
-                "__entity_id":    "Entity ID",
-                "__cluster_size": "Cluster Size",
-                "__match_type":   "Match Type",
-                "__matched_by":   "Matched By",
-            }
-            st.dataframe(
-                filtered[display_cols].rename(columns=rename_map),
-                use_container_width=True,
-                hide_index=True,
-            )
-
-    # ─────────────────────────────────────────────────────────────────────────
-    # TAB 2 — Entity 360
-    # ─────────────────────────────────────────────────────────────────────────
-    with tab2:
-        st.markdown("#### Entity 360 — full view of a merged entity")
-        st.caption(
-            "Select an entity to see all contributing source records, "
-            "the golden record fields, and the survivorship decision for each field."
-        )
-
-        if not mdm.golden_records:
-            st.info("No duplicate clusters to display.")
-        else:
-            entity_options = [
-                f"{gr.entity_id}  ({gr.cluster_size} records, {gr.match_type})"
-                for gr in mdm.golden_records[:100]
-            ]
-            selected_label = st.selectbox("Select entity", entity_options)
-            selected_idx   = entity_options.index(selected_label)
-            gr             = mdm.golden_records[selected_idx]
-            view           = entity_360(df, gr, mdm.match_pairs)
-
-            # ── Header ───────────────────────────────────────────────────────
-            col_id, col_sz, col_mt = st.columns(3)
-            col_id.metric("Entity ID",    gr.entity_id)
-            col_sz.metric("Cluster size", gr.cluster_size)
-            col_mt.metric("Match type",   gr.match_type.title())
-
-            st.markdown(f"**Matched by:** {', '.join(gr.matched_by) or '—'}")
-            st.markdown("---")
-
-            # ── Survivorship table ────────────────────────────────────────────
-            st.markdown("##### 🏆 Golden record — survivorship")
-            surv_rows = []
-            for row in view["survivorship"]:
-                conflict_icon = "⚠️" if row["conflict"] else "✓"
-                surv_rows.append({
-                    "Field":         row["field"],
-                    "Golden value":  row["golden_value"],
-                    "Source":        row["source"],
-                    "Reason":        row["reason"].replace("_", " "),
-                    "All values":    " / ".join(str(v) for v in row["all_values"][:4]),
-                    "Conflict":      conflict_icon,
-                })
-            if surv_rows:
-                st.dataframe(
-                    pd.DataFrame(surv_rows),
-                    use_container_width=True,
-                    hide_index=True,
+            with sc2:
+                src_priority_text = st.text_input(
+                    "Source priority order (comma-separated, highest first)",
+                    value="",
+                    placeholder="e.g.  CRM, EHR, Manual",
+                    help="Leave blank for most-common-value survivorship.",
+                )
+                source_priorities = (
+                    [s.strip() for s in src_priority_text.split(",") if s.strip()]
+                    if src_priority_text.strip() else []
                 )
 
-            st.markdown("---")
+        # ── Run simulation ────────────────────────────────────────────────────
+        if st.button("▶  Run MDM simulation", type="primary", use_container_width=True):
+            with st.spinner(f"Applying match rules to {len(df):,} records…"):
+                mdm_result = simulate(
+                    df,
+                    rules,
+                    source_col        = source_col,
+                    source_priorities = source_priorities,
+                    max_golden_records= 500,
+                )
+            st.session_state.mdm_result = mdm_result
+            st.rerun()
 
-            # ── Source records ────────────────────────────────────────────────
-            st.markdown("##### 📂 Contributing source records")
-            for i, (orig_idx, rec) in enumerate(
-                zip(gr.source_idxs, view["source_records"])
-            ):
-                with st.expander(f"Source record {i + 1} — row {orig_idx}", expanded=(i == 0)):
-                    clean_rec = {k: v for k, v in rec.items()
-                                 if not str(v).strip().lower() in ("nan", "none", "")}
-                    st.json(clean_rec)
+        mdm = st.session_state.get("mdm_result")
+        if not mdm:
+            st.info("Click **Run MDM simulation** above to execute.")
+        else:
+            # ── Summary bar ───────────────────────────────────────────────────
+            total      = mdm.total_input_records
+            reduction  = mdm.dedup_rate_pct
+            dedup_color = "#4ade80" if reduction > 5 else "#64748b"
 
-            # ── Match pairs in this cluster ───────────────────────────────────
-            if view["pairs"]:
-                st.markdown("---")
-                st.markdown("##### 🔗 Match pairs in this entity")
-                for p in view["pairs"]:
-                    verdict_color = "#4ade80" if p.rule_type == "automatic" else "#a78bfa"
-                    evidence_lines = " · ".join(
-                        f"{f}={e['a_val']} ↔ {e['b_val']} ({e['match_type']})"
-                        for f, e in list(p.evidence.items())[:3]
-                    )
-                    st.markdown(
-                        f"<div style='background:#161821;border:1px solid #1e2130;"
-                        f"border-left:3px solid {verdict_color};border-radius:0 8px 8px 0;"
-                        f"padding:.5rem .9rem;margin-bottom:.4rem;'>"
-                        f"<span style='font-family:IBM Plex Mono;font-size:.7rem;"
-                        f"color:{verdict_color};'>{p.rule_type.upper()}</span> "
-                        f"<span style='font-size:.8rem;color:#94a3b8;'>{p.rule_label}</span><br>"
-                        f"<span style='font-size:.75rem;color:#64748b;'>row {p.idx_a} ↔ row {p.idx_b} · {evidence_lines}</span>"
-                        f"</div>",
-                        unsafe_allow_html=True,
+            st.markdown(f"""
+            <div class="summary-bar">
+              <div class="sb-item">
+                <span class="sb-val">{total:,}</span>
+                <span class="sb-lbl">Input records</span>
+              </div>
+              <div class="sb-item">
+                <span class="sb-val" style="color:{dedup_color};">{mdm.total_entities:,}</span>
+                <span class="sb-lbl">Entities (after dedup)</span>
+              </div>
+              <div class="sb-item">
+                <span class="sb-val" style="color:#4ade80;">{mdm.auto_merged_entities:,}</span>
+                <span class="sb-lbl">Auto-merged entities</span>
+              </div>
+              <div class="sb-item">
+                <span class="sb-val" style="color:#a78bfa;">{mdm.suspect_entities:,}</span>
+                <span class="sb-lbl">Suspect (steward review)</span>
+              </div>
+              <div class="sb-item">
+                <span class="sb-val" style="color:#64748b;">{mdm.singleton_entities:,}</span>
+                <span class="sb-lbl">Unique (no match)</span>
+              </div>
+              <div class="sb-item">
+                <span class="sb-val" style="color:{dedup_color};">{reduction:.1f}%</span>
+                <span class="sb-lbl">Dedup reduction</span>
+              </div>
+              <div class="sb-item">
+                <span class="sb-val">{len(mdm.match_pairs):,}</span>
+                <span class="sb-lbl">Match pairs found</span>
+              </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # ── Tabs ──────────────────────────────────────────────────────────
+            tab1, tab2, tab3, tab4 = st.tabs([
+                "📋 Entity Grid",
+                "🔍 Entity 360",
+                "🔗 Match Explorer",
+                "📊 Rule Stats",
+            ])
+
+            # ─────────────────────────────────────────────────────────────────
+            # TAB 1 — Entity Grid (paginated golden records)
+            # ─────────────────────────────────────────────────────────────────
+            with tab1:
+                st.markdown("#### Golden records — merged entities")
+                st.caption(
+                    "Each row represents one resolved entity. Cluster Size shows how many "
+                    "source records merged. Golden values are chosen by survivorship rules."
+                )
+
+                if not mdm.golden_records:
+                    st.info("No duplicate clusters found — all records are unique.")
+                else:
+                    grid_df = golden_records_to_df(mdm.golden_records)
+
+                    fc1, fc2 = st.columns(2)
+                    with fc1:
+                        type_filter = st.selectbox(
+                            "Filter by match type",
+                            ["All", "automatic", "suspect"],
+                        )
+                    with fc2:
+                        min_cluster = st.slider("Min cluster size", 2, max(
+                            gr.cluster_size for gr in mdm.golden_records), 2)
+
+                    filtered = grid_df.copy()
+                    if type_filter != "All":
+                        filtered = filtered[filtered["__match_type"] == type_filter]
+                    filtered = filtered[filtered["__cluster_size"] >= min_cluster]
+
+                    st.caption(f"Showing {len(filtered):,} of {len(grid_df):,} entities")
+
+                    meta_cols = ["__entity_id", "__cluster_size", "__match_type", "__matched_by"]
+                    data_cols = [c for c in filtered.columns if not c.startswith("__")][:6]
+                    display_cols = [c for c in meta_cols + data_cols if c in filtered.columns]
+
+                    rename_map = {
+                        "__entity_id":    "Entity ID",
+                        "__cluster_size": "Cluster Size",
+                        "__match_type":   "Match Type",
+                        "__matched_by":   "Matched By",
+                    }
+                    st.dataframe(
+                        filtered[display_cols].rename(columns=rename_map),
+                        use_container_width=True,
+                        hide_index=True,
                     )
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # TAB 3 — Match Explorer
-    # ─────────────────────────────────────────────────────────────────────────
-    with tab3:
-        st.markdown("#### Match pair explorer")
-        st.caption(
-            "Every pair of source records that triggered a match rule, "
-            "with the fields that caused the match and the values that agreed."
-        )
-
-        if not mdm.match_pairs:
-            st.info("No match pairs found.")
-        else:
-            # Filter controls
-            me1, me2 = st.columns(2)
-            with me1:
-                rule_options = ["All rules"] + list({p.rule_label for p in mdm.match_pairs})
-                rule_filter  = st.selectbox("Filter by rule", rule_options, key="me_rule")
-            with me2:
-                type_options = ["All types", "automatic", "suspect"]
-                type_filter2 = st.selectbox("Filter by type", type_options, key="me_type")
-
-            filtered_pairs = mdm.match_pairs
-            if rule_filter != "All rules":
-                filtered_pairs = [p for p in filtered_pairs if p.rule_label == rule_filter]
-            if type_filter2 != "All types":
-                filtered_pairs = [p for p in filtered_pairs if p.rule_type == type_filter2]
-
-            st.caption(f"Showing {min(len(filtered_pairs), 100):,} of {len(filtered_pairs):,} pairs")
-
-            for pair in filtered_pairs[:100]:
-                verdict_color = "#4ade80" if pair.rule_type == "automatic" else "#a78bfa"
-                ev_html = "".join(
-                    f"<div style='font-size:.72rem;color:#64748b;margin-left:.5rem;'>"
-                    f"<b style='color:#94a3b8;'>{f}</b>: "
-                    f"<span style='color:#e2e8f0;'>{e['a_val']}</span> "
-                    f"<span style='color:#475569;'>↔</span> "
-                    f"<span style='color:#e2e8f0;'>{e['b_val']}</span> "
-                    f"<span style='color:#64748b;'>({e['match_type']})</span></div>"
-                    for f, e in pair.evidence.items()
-                )
-                st.markdown(
-                    f"<div style='background:#161821;border:1px solid #1e2130;"
-                    f"border-left:3px solid {verdict_color};border-radius:0 8px 8px 0;"
-                    f"padding:.6rem 1rem;margin-bottom:.5rem;'>"
-                    f"<div style='display:flex;justify-content:space-between;'>"
-                    f"<span style='font-weight:600;font-size:.85rem;color:#e2e8f0;'>"
-                    f"Row {pair.idx_a} ↔ Row {pair.idx_b}</span>"
-                    f"<span style='font-family:IBM Plex Mono;font-size:.7rem;"
-                    f"color:{verdict_color};'>{pair.rule_type.upper()}</span></div>"
-                    f"<div style='font-size:.75rem;color:#64748b;margin-top:.2rem;'>"
-                    f"{pair.rule_label}</div>"
-                    f"{ev_html}"
-                    f"</div>",
-                    unsafe_allow_html=True,
+            # ─────────────────────────────────────────────────────────────────
+            # TAB 2 — Entity 360
+            # ─────────────────────────────────────────────────────────────────
+            with tab2:
+                st.markdown("#### Entity 360 — full view of a merged entity")
+                st.caption(
+                    "Select an entity to see all contributing source records, "
+                    "the golden record fields, and the survivorship decision for each field."
                 )
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # TAB 4 — Rule Stats
-    # ─────────────────────────────────────────────────────────────────────────
-    with tab4:
-        st.markdown("#### Per-rule match statistics")
+                if not mdm.golden_records:
+                    st.info("No duplicate clusters to display.")
+                else:
+                    entity_options = [
+                        f"{gr.entity_id}  ({gr.cluster_size} records, {gr.match_type})"
+                        for gr in mdm.golden_records[:100]
+                    ]
+                    selected_label = st.selectbox("Select entity", entity_options)
+                    selected_idx   = entity_options.index(selected_label)
+                    gr             = mdm.golden_records[selected_idx]
+                    view           = entity_360(df, gr, mdm.match_pairs)
 
-        if not mdm.rule_stats:
-            st.info("No rule statistics available.")
-        else:
-            for uri, rs in mdm.rule_stats.items():
-                rtype = rs.type
-                color = {"automatic": "#4ade80", "suspect": "#a78bfa"}.get(rtype, "#64748b")
-                pct   = round(rs.profiles / max(total, 1) * 100, 1)
-                risk  = "⚠️ High" if pct > 30 else "Medium" if pct > 10 else "Low"
+                    col_id, col_sz, col_mt = st.columns(3)
+                    col_id.metric("Entity ID",    gr.entity_id)
+                    col_sz.metric("Cluster size", gr.cluster_size)
+                    col_mt.metric("Match type",   gr.match_type.title())
 
-                st.markdown(
-                    f"<div class='rule-card {'auto-rule' if rtype == 'automatic' else ''}'>"
-                    f"<div class='rule-title'>{rs.label}</div>"
-                    f"<div class='rule-meta'>"
-                    f"<span class='tag {'tag-auto' if rtype == 'automatic' else 'tag-suspect'}'>"
-                    f"{rtype}</span></div>"
-                    f"<div class='match-stats'>"
-                    f"<div class='ms-item'>"
-                    f"<span class='ms-val {'warn' if pct > 30 else ''}'>{rs.profiles:,}</span>"
-                    f"<span class='ms-lbl'>profiles ({pct:.1f}%)</span></div>"
-                    f"<div class='ms-item'>"
-                    f"<span class='ms-val'>{rs.pairs:,}</span>"
-                    f"<span class='ms-lbl'>match pairs</span></div>"
-                    f"<div class='ms-item'>"
-                    f"<span class='ms-val' style='color:#fb923c;'>{risk}</span>"
-                    f"<span class='ms-lbl'>over-match risk</span></div>"
-                    f"</div></div>",
-                    unsafe_allow_html=True,
+                    st.markdown(f"**Matched by:** {', '.join(gr.matched_by) or '—'}")
+                    st.markdown("---")
+
+                    st.markdown("##### 🏆 Golden record — survivorship")
+                    surv_rows = []
+                    for row in view["survivorship"]:
+                        conflict_icon = "⚠️" if row["conflict"] else "✓"
+                        surv_rows.append({
+                            "Field":         row["field"],
+                            "Golden value":  row["golden_value"],
+                            "Source":        row["source"],
+                            "Reason":        row["reason"].replace("_", " "),
+                            "All values":    " / ".join(str(v) for v in row["all_values"][:4]),
+                            "Conflict":      conflict_icon,
+                        })
+                    if surv_rows:
+                        st.dataframe(
+                            pd.DataFrame(surv_rows),
+                            use_container_width=True,
+                            hide_index=True,
+                        )
+
+                    st.markdown("---")
+                    st.markdown("##### 📂 Contributing source records")
+                    for i, (orig_idx, rec) in enumerate(
+                        zip(gr.source_idxs, view["source_records"])
+                    ):
+                        with st.expander(f"Source record {i + 1} — row {orig_idx}", expanded=(i == 0)):
+                            clean_rec = {k: v for k, v in rec.items()
+                                         if not str(v).strip().lower() in ("nan", "none", "")}
+                            st.json(clean_rec)
+
+                    if view["pairs"]:
+                        st.markdown("---")
+                        st.markdown("##### 🔗 Match pairs in this entity")
+                        for p in view["pairs"]:
+                            verdict_color = "#4ade80" if p.rule_type == "automatic" else "#a78bfa"
+                            evidence_lines = " · ".join(
+                                f"{f}={e['a_val']} ↔ {e['b_val']} ({e['match_type']})"
+                                for f, e in list(p.evidence.items())[:3]
+                            )
+                            st.markdown(
+                                f"<div style='background:#161821;border:1px solid #1e2130;"
+                                f"border-left:3px solid {verdict_color};border-radius:0 8px 8px 0;"
+                                f"padding:.5rem .9rem;margin-bottom:.4rem;'>"
+                                f"<span style='font-family:IBM Plex Mono;font-size:.7rem;"
+                                f"color:{verdict_color};'>{p.rule_type.upper()}</span> "
+                                f"<span style='font-size:.8rem;color:#94a3b8;'>{p.rule_label}</span><br>"
+                                f"<span style='font-size:.75rem;color:#64748b;'>row {p.idx_a} ↔ row {p.idx_b} · {evidence_lines}</span>"
+                                f"</div>",
+                                unsafe_allow_html=True,
+                            )
+
+            # ─────────────────────────────────────────────────────────────────
+            # TAB 3 — Match Explorer
+            # ─────────────────────────────────────────────────────────────────
+            with tab3:
+                st.markdown("#### Match pair explorer")
+                st.caption(
+                    "Every pair of source records that triggered a match rule, "
+                    "with the fields that caused the match and the values that agreed."
                 )
 
-        # ── Evidence panel (if evidence pipeline was run) ─────────────────
-        ev = st.session_state.get("evidence_result") or {}
-        if ev.get("match_evidence"):
-            st.markdown("---")
-            st.markdown("#### 🧬 Match evidence from confirmed duplicates")
-            st.caption(
-                f"Found **{ev.get('n_match', 0)}** confirmed MATCH pairs via "
-                f"{ev.get('engine', 'embeddings')}. "
-                f"Field frequencies below show how often each field agreed in those pairs."
-            )
-            try:
-                from utils.llm import format_evidence_summary
-                ev_rows = format_evidence_summary(ev["match_evidence"])
-                st.dataframe(pd.DataFrame(ev_rows), use_container_width=True, hide_index=True)
-            except ImportError:
-                st.json(ev["match_evidence"])
+                if not mdm.match_pairs:
+                    st.info("No match pairs found.")
+                else:
+                    me1, me2 = st.columns(2)
+                    with me1:
+                        rule_options = ["All rules"] + list({p.rule_label for p in mdm.match_pairs})
+                        rule_filter  = st.selectbox("Filter by rule", rule_options, key="me_rule")
+                    with me2:
+                        type_options = ["All types", "automatic", "suspect"]
+                        type_filter2 = st.selectbox("Filter by type", type_options, key="me_type")
 
-    # ── Proceed ───────────────────────────────────────────────────────────────
-    st.markdown("---")
-    if st.button("▶  Proceed to export", type="primary", use_container_width=True):
-        st.session_state.step = 6
-        st.rerun()
+                    filtered_pairs = mdm.match_pairs
+                    if rule_filter != "All rules":
+                        filtered_pairs = [p for p in filtered_pairs if p.rule_label == rule_filter]
+                    if type_filter2 != "All types":
+                        filtered_pairs = [p for p in filtered_pairs if p.rule_type == type_filter2]
+
+                    st.caption(f"Showing {min(len(filtered_pairs), 100):,} of {len(filtered_pairs):,} pairs")
+
+                    for pair in filtered_pairs[:100]:
+                        verdict_color = "#4ade80" if pair.rule_type == "automatic" else "#a78bfa"
+                        ev_html = "".join(
+                            f"<div style='font-size:.72rem;color:#64748b;margin-left:.5rem;'>"
+                            f"<b style='color:#94a3b8;'>{f}</b>: "
+                            f"<span style='color:#e2e8f0;'>{e['a_val']}</span> "
+                            f"<span style='color:#475569;'>↔</span> "
+                            f"<span style='color:#e2e8f0;'>{e['b_val']}</span> "
+                            f"<span style='color:#64748b;'>({e['match_type']})</span></div>"
+                            for f, e in pair.evidence.items()
+                        )
+                        st.markdown(
+                            f"<div style='background:#161821;border:1px solid #1e2130;"
+                            f"border-left:3px solid {verdict_color};border-radius:0 8px 8px 0;"
+                            f"padding:.6rem 1rem;margin-bottom:.5rem;'>"
+                            f"<div style='display:flex;justify-content:space-between;'>"
+                            f"<span style='font-weight:600;font-size:.85rem;color:#e2e8f0;'>"
+                            f"Row {pair.idx_a} ↔ Row {pair.idx_b}</span>"
+                            f"<span style='font-family:IBM Plex Mono;font-size:.7rem;"
+                            f"color:{verdict_color};'>{pair.rule_type.upper()}</span></div>"
+                            f"<div style='font-size:.75rem;color:#64748b;margin-top:.2rem;'>"
+                            f"{pair.rule_label}</div>"
+                            f"{ev_html}"
+                            f"</div>",
+                            unsafe_allow_html=True,
+                        )
+
+            # ─────────────────────────────────────────────────────────────────
+            # TAB 4 — Rule Stats
+            # ─────────────────────────────────────────────────────────────────
+            with tab4:
+                st.markdown("#### Per-rule match statistics")
+
+                if not mdm.rule_stats:
+                    st.info("No rule statistics available.")
+                else:
+                    for uri, rs in mdm.rule_stats.items():
+                        rtype = rs.type
+                        color = {"automatic": "#4ade80", "suspect": "#a78bfa"}.get(rtype, "#64748b")
+                        pct   = round(rs.profiles / max(total, 1) * 100, 1)
+                        risk  = "⚠️ High" if pct > 30 else "Medium" if pct > 10 else "Low"
+
+                        st.markdown(
+                            f"<div class='rule-card {'auto-rule' if rtype == 'automatic' else ''}'>"
+                            f"<div class='rule-title'>{rs.label}</div>"
+                            f"<div class='rule-meta'>"
+                            f"<span class='tag {'tag-auto' if rtype == 'automatic' else 'tag-suspect'}'>"
+                            f"{rtype}</span></div>"
+                            f"<div class='match-stats'>"
+                            f"<div class='ms-item'>"
+                            f"<span class='ms-val {'warn' if pct > 30 else ''}'>{rs.profiles:,}</span>"
+                            f"<span class='ms-lbl'>profiles ({pct:.1f}%)</span></div>"
+                            f"<div class='ms-item'>"
+                            f"<span class='ms-val'>{rs.pairs:,}</span>"
+                            f"<span class='ms-lbl'>match pairs</span></div>"
+                            f"<div class='ms-item'>"
+                            f"<span class='ms-val' style='color:#fb923c;'>{risk}</span>"
+                            f"<span class='ms-lbl'>over-match risk</span></div>"
+                            f"</div></div>",
+                            unsafe_allow_html=True,
+                        )
+
+                # ── Evidence panel ────────────────────────────────────────────
+                ev = st.session_state.get("evidence_result") or {}
+                if ev.get("match_evidence"):
+                    st.markdown("---")
+                    st.markdown("#### 🧬 Match evidence from confirmed duplicates")
+                    st.caption(
+                        f"Found **{ev.get('n_match', 0)}** confirmed MATCH pairs via "
+                        f"{ev.get('engine', 'embeddings')}. "
+                        f"Field frequencies below show how often each field agreed in those pairs."
+                    )
+                    try:
+                        from utils.llm import format_evidence_summary
+                        ev_rows = format_evidence_summary(ev["match_evidence"])
+                        st.dataframe(pd.DataFrame(ev_rows), use_container_width=True, hide_index=True)
+                    except ImportError:
+                        st.json(ev["match_evidence"])
+
+        # ── Proceed ───────────────────────────────────────────────────────────
+        st.markdown("---")
+        if st.button("▶  Proceed to export", type="primary", use_container_width=True):
+            st.session_state.step = 6
+            st.rerun()
+
 # ── STEP 6: Export ────────────────────────────────────────────────────────────
 elif st.session_state.step == 6:
     st.markdown('<div class="step-badge">STEP 06</div>', unsafe_allow_html=True)
@@ -1139,7 +1133,6 @@ elif st.session_state.step == 6:
         c2.metric("DQ fixes applied",  n_applied)
         c3.metric("Records corrected", f"{recs_fixed:,}")
 
-        # Show diff of changed cells
         changed_cols = []
         for col in orig_df.columns:
             if col in cleaned_df.columns:
