@@ -462,7 +462,10 @@ elif st.session_state.step == 4:
                      + (f" ({skipped} skipped — too sparse)" if skipped else ""))
 
             st.write("🧠 Classifying column semantics from real data…")
-
+            sem = analyze_semantics(prof, entity_type, api_key)
+            cols = sem.get("columns", {})
+            n_pri = sum(1 for c in cols.values() if c.get("can_be_primary"))
+            st.write(f"✅ {len(cols)} columns classified, {n_pri} primary candidates")
             evidence_result = {}
             if vector_available() and st.session_state.api_key:
                 with st.spinner("Stage 1: Finding candidate pairs via embedding..."):
@@ -478,6 +481,7 @@ elif st.session_state.step == 4:
 
             st.write("⚙️  Generating matchGroups JSON…")
             profiling_summary = prof
+            semantic = sem
            
             rules = generate_evidence_driven_rules(
                 profiling_summary, semantic, match_evidence,
